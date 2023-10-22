@@ -1,5 +1,5 @@
 # Brief
-Cherissame amis. This portfolio compiles all of my assignments and personal projects demonstrative of my technical skills. Categories include:
+Cherissame amis. This portfolio compiles all of my assignments and personal projects demonstrative of my technical skills. For quick checking, each category has a representatory file on the front page whose brief amount of code I feel is demonstrative of my abilities. Categories include:
 
 * Applied Regression Analysis: Fall 2023 with Dr. Olga Korosteleva at CSULB. Uses R, Python, and SAS.
 * Data Analysis with SAS: Fall 2023 with Dr. Olga Korosteleva at CSULB.
