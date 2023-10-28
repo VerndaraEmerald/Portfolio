@@ -1,0 +1,8 @@
+"0","# Set references."
+"0","desgn.rel = relevel(factor(QI.data$desgn), ref=""staff"")"
+"0","priorQI.rel = relevel(factor(QI.data$priorQI), ref=""no"")"
+"0",""
+"0","# Attempt Box-Cox."
+"0","BoxCox.fit = boxcox(scoreper ~ desgn.rel + wrkyrs + priorQI.rel,"
+"0","                    data = QI.data,"
+"0","                    lambda = seq(-3,3,1/4),interp = FALSE)"

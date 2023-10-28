@@ -1,0 +1,5 @@
+"0","# Call data, relevel, and rescale."
+"0","QI.data = read.csv(file = ""C:/Users/3sekk/Desktop/fall 23 stats/410/Data_for_Exercises/Exercise2.2Data.csv"",header=TRUE,sep="","")"
+"0","  desgn.rel = relevel(factor(QI.data$desgn), ref=""staff"")"
+"0","  priorQI.rel = relevel(factor(QI.data$priorQI), ref=""no"")"
+"0","  score = QI.data$score / 100"

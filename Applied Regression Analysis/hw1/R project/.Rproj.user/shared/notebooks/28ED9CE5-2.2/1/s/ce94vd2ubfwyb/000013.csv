@@ -1,0 +1,5 @@
+"0","# Print out the results of the predict function after adding a predictor value. Also untransform it."
+"0","claimamount_tr = (predict(fitted.model, data.frame(npoliciesK=15.5,"
+"0","                                                yrswithfirm=3, percopenclaims=15)))"
+"2","Error in eval(predvars, data, env) : object 'wrkyrs' not found
+"

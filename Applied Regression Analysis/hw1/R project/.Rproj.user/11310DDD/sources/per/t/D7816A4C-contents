@@ -1,0 +1,37 @@
+---
+title: "HW2"
+output: html_notebook
+---
+
+Step 1: Download Employee Travel Data from:  
+<https://catalog.data.gov/dataset/employee-travel-data-non-local>
+
+Step 2: Import the dataset
+
+Q1: Rename variables that consist of multiple words. Fill the space with underscore between spaces (e.g. travel_start_date = `Travel Start Date` etc.).  
+
+```{r Q1}
+
+```
+
+Q2: Which departments spend the most for traveling and how much do they spend for traveling?
+Use the Pareto chart to answer the question. Show only the departments that spent more than 100K for traveling in the Pareto chart.  Make the plot meaningful and self-explanatory.
+```{r Q2}
+
+```
+
+Q3: Using `lubridate` package, split `travel_start_date` to three different columns: `start_year`, `start_month` and `start_day`.  Likewise, apply the same rule to `travel_end_date` to separate into three different columns: `end_year`, etc
+```{r Q3}
+
+```
+
+Q4: Now, we want to find the average amount spent yearly.  Which year has spent the most in terms of average amount spent?  Use the pie chart, visualize your results.  Your chart must be self-explanatory.
+```{r Q4}
+
+```
+
+Q5: Find money spending by month in travel starting year 2015.  Which month was the worst month in terms of money spending in 2015?
+```{r Q5}
+
+```
+

@@ -1,0 +1,3 @@
+"0","# Call data, relevel, and rescale."
+"0","claims.data = read.csv(file = ""C:/Users/3sekk/Desktop/fall 23 stats/410/Data_for_Exercises/Exercise2.4Data.csv"",header=TRUE,sep="","")"
+"0","  policiesK = claims.data$npolicies / 1000"

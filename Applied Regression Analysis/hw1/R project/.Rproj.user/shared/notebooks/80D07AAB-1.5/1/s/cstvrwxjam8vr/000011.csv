@@ -1,0 +1,6 @@
+"0","# Fetch and combine transition times."
+"0","triath.data = read.csv(file = ""C:/Users/3sekk/Desktop/fall 23 stats/410/Data_for_Exercises/Exercise1.5Data.csv"",header=TRUE,sep="","")"
+"0","combined = triath.data$t1 + triath.data$t2"
+"0",""
+"0","# Fetch normality and perform Shapiro-Wilk test."
+"0","plotNormalHistogram(combined)"

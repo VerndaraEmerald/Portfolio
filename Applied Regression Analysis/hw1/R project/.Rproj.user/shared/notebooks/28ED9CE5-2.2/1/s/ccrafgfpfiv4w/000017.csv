@@ -1,0 +1,3 @@
+"0","BoxCox.data = data.frame(BoxCox.fit$x, BoxCox.fit$y)"
+"0","ordered.data = BoxCox.data[with(BoxCox.data, order(-BoxCox.fit.y)),]"
+"0","ordered.data[1,]"

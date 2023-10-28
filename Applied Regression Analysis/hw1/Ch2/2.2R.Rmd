@@ -1,0 +1,72 @@
+---
+title: '2.2'
+output: html_document
+date: "2023-10-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Libraries}
+library(rcompanion)
+library(MASS)
+```
+
+```{r Normality and Model}
+# Fetch data and scale scores.
+QI.data = read.csv(file = "./data/Exercise2.2Data.csv",header=TRUE,sep=",")
+scoreper = QI.data$score / 100
+
+# Fetch normality and perform Shapiro-Wilk test.
+plotNormalHistogram(scoreper)
+shapiro.test(scoreper)
+```
+
+```{r Box-Cox Trnasofrmation}
+# Set references.
+desgn.rel = relevel(factor(QI.data$desgn), ref="staff")
+priorQI.rel = relevel(factor(QI.data$priorQI), ref="no")
+
+# Attempt Box-Cox.
+BoxCox.fit = boxcox(scoreper ~ desgn.rel + wrkyrs + priorQI.rel,
+                    data = QI.data,
+                    lambda = seq(-3,3,1/4),interp = FALSE)
+BoxCox.data = data.frame(BoxCox.fit$x, BoxCox.fit$y)
+ordered.data = BoxCox.data[with(BoxCox.data, order(-BoxCox.fit.y)),]
+ordered.data[1,]
+
+# Box-Cox transformation with λ = -1.
+scoreper_tr = 1 - (1/scoreper)
+
+# Fetch normality and perform Shapiro-Wilk test.
+plotNormalHistogram(scoreper_tr)
+shapiro.test(scoreper_tr)
+```
+
+```{r Model}
+# Fit general linear model.
+summary(fitted.model<- glm(scoreper_tr ~ desgn.rel + wrkyrs + priorQI.rel,
+                           data=QI.data, 
+                           family=gaussian(link = identity)))
+sigma(fitted.model)
+```
+
+```{r Deviance}
+# Develop null model.
+null.model<- glm(scoreper_tr ~ 1, 
+                 data=QI.data,
+                 family=gaussian(link=identity))
+
+# Produce deviance test and results.
+print(deviance<- -2*(logLik(null.model)-logLik(fitted.model)))
+print(p.value<- pchisq(deviance, df=4, lower.tail=FALSE))
+```
+
+```{r Prediction}
+# Calculate prediction, then print out its untransformed variant.
+scoreper_tr = (predict(fitted.model,data.frame
+                       (desgn.rel="nurse", wrkyrs=7,priorQI.rel="yes")))
+print(100/(1-scoreper_tr))
+```
+

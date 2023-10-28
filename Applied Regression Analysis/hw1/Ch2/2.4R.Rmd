@@ -1,0 +1,69 @@
+---
+title: '2.4'
+output: html_document
+date: "2023-10-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Libraries}
+library(rcompanion)
+library(MASS)
+```
+
+```{r Normality and Model}
+# Fetch data and scale scores.
+claims.data = read.csv(file = "./data/Exercise2.4Data.csv",header=TRUE,sep=",")
+policiesK = claims.data$npolicies / 1000
+
+# Fetch normality and perform Shapiro-Wilk test.
+plotNormalHistogram(claims.data$claimamount)
+shapiro.test(claims.data$claimamount)
+```
+
+```{r Box-Cox Transformation}
+# Attempt Box-Cox.
+BoxCox.fit = boxcox(claimamount ~ policiesK + yrswithfirm + percopenclaims,
+                    data = claims.data,
+                    lambda = seq(-3,3,1/4),interp = FALSE)
+BoxCox.data = data.frame(BoxCox.fit$x, BoxCox.fit$y)
+ordered.data = BoxCox.data[with(BoxCox.data, order(-BoxCox.fit.y)),]
+ordered.data[1,]
+
+# Box-Cox transformation with λ = 0.5.
+claimamount_tr = 2 * (sqrt(claims.data$claimamount) - 1)
+
+# Fetch normality and perform Shapiro-Wilk test.
+plotNormalHistogram(claimamount_tr)
+shapiro.test(claimamount_tr)
+```
+
+```{r Model}
+# Fit general linear model.
+summary(fitted.model<- glm(claimamount_tr ~ policiesK + yrswithfirm + percopenclaims,
+                           data=claims.data, 
+                           family=gaussian(link = identity)))
+sigma(fitted.model)
+```
+
+```{r Deviance}
+# Develop null model.
+null.model<- glm(claimamount_tr ~ 1, 
+                 data=claims.data,
+                 family=gaussian(link=identity))
+
+# Produce deviance test and results.
+print(deviance<- -2*(logLik(null.model)-logLik(fitted.model)))
+print(p.value<- pchisq(deviance, df=3, lower.tail=FALSE))
+```
+
+```{r Predictions}
+# Calculate prediction, then print out its untransformed variant.
+claimamount_tr = (predict(fitted.model, data.frame(policiesK=15.5,
+                                                yrswithfirm=3, percopenclaims=15)))
+print((claimamount_tr/2 + 1)**2)
+```
+```
+

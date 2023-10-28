@@ -1,0 +1,6 @@
+"0",""
+"0","# Box-Cox transformation with λ = 0.5."
+"0","claimamount_tr = 2 * (sqrt(claims.data$claimamount) - 1)"
+"0",""
+"0","# Fetch normality and perform Shapiro-Wilk test."
+"0","plotNormalHistogram(claimamount_tr)"

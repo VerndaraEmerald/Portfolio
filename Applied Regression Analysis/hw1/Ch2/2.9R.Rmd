@@ -1,0 +1,40 @@
+---
+title: '2.9'
+output: html_document
+date: "2023-10-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Call Data, Relevel}
+# Call data, relevel, and rescale.
+claims.data = read.csv(file = "./data/Exercise2.4Data.csv",header=TRUE,sep=",")
+  policiesK = claims.data$npolicies / 1000
+```
+
+```{r Fitted model}
+# Develop fitted model.
+summary(fitted.model<- glm(claimamount ~ policiesK + yrswithfirm + percopenclaims,
+                           data=claims.data, 
+                           family=Gamma(link = log)))
+```
+
+```{r Deviance}
+# Develop null model.
+null.model<- glm(claimamount ~ 1, 
+                 data=claims.data,
+                 family=Gamma(link=log))
+
+# Produce deviance test and results.
+print(deviance<- -2*(logLik(null.model)-logLik(fitted.model)))
+print(p.value<- pchisq(deviance, df=3, lower.tail=FALSE))
+```
+
+```{r Prediction}
+# Calculate prediction, then print it out.
+print(predict(fitted.model, data.frame(
+  policiesK=15.5,yrswithfirm=3,percopenclaims=15),type= "response"))
+```
+

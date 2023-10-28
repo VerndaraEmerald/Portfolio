@@ -1,0 +1,8 @@
+"0","# Print out the results of the predict function after adding a predictor value."
+"0","print(predict(fitted.model,data.frame(Age=30, gender.rel=""F"", QuietTime=10, NChildren=3, StressLevel=7, jobstatus.rel=""full"", NActivities=7, PastVac=12)))"
+"1","       1 "
+"1","
+"
+"1","6.376164 "
+"1","
+"

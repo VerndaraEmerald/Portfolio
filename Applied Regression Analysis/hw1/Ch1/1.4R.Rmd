@@ -1,0 +1,52 @@
+---
+title: '1.4'
+output: html_document
+date: "2023-10-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Libraries}
+library(rcompanion)
+```
+
+```{r Normality and Model}
+# Fetch data.
+# Robust: Working directory is associated with this rmd file, and thus, R is in this folder and fishes in data for the csv.
+sleep.data = read.csv(file = "../../data//Exercise1.4Data.csv",header=TRUE,sep=",")
+
+# Fetch normality and perform Shapiro-Wilk test.
+plotNormalHistogram(sleep.data$Sleephours)
+shapiro.test(sleep.data$Sleephours)
+
+# Set references.
+gender.rel = relevel(factor(sleep.data$Gender), ref="F")
+jobstatus.rel = relevel(factor(sleep.data$JobStatus), ref="full")
+
+# Fit general linear model.
+summary(fitted.model <- glm(Sleephours ~ 
+                gender.rel + jobstatus.rel + Age + QuietTime + NChildren + StressLevel
+                + NActivities + PastVac, 
+data=sleep.data, 
+family=gaussian(link=identity)))
+sigma(fitted.model)
+```
+
+```{r Deviance Test}
+# Develop null model.
+null.model<- glm(Sleephours ~ 1, 
+                 data=sleep.data,
+                 family=gaussian(link=identity))
+
+# Produce deviance test and results.
+print(deviance<- -2*(logLik(null.model)-logLik(fitted.model)))
+print(p.value<- pchisq(deviance, df=10, lower.tail=FALSE))
+```
+
+```{r Prediction}
+# Print out the results of the predict function after adding a predictor value.
+print(predict(fitted.model,data.frame(Age=30, gender.rel="F", QuietTime=10, NChildren=3, StressLevel=7, jobstatus.rel="full", NActivities=7, PastVac=12)))
+```
+

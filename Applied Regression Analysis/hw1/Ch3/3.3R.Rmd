@@ -1,0 +1,148 @@
+---
+title: '3.3'
+output: html_document
+date: "2023-10-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Libraries}
+library(rcompanion)
+```
+
+```{r Logistic Model}
+# Summon and relevel data.
+novel.data = read.csv(file="./data/Exercise3.3Data.csv", 
+                          header=TRUE, sep=",")
+  cover.rel = relevel(factor(novel.data$cover), ref="no")
+  methods.rel = relevel(factor(novel.data$methods), ref="none")
+  novelamount.rel = relevel(factor(novel.data$novels), ref="many")
+
+# Develop logistic model.
+# Note that R can't use the "success" variables at-base since they're strings.
+# factor(success) converts success from string to levels.
+summary(fitted.model<- glm(factor(success) ~ cover.rel + methods.rel + novelamount.rel + years,
+      data=novel.data, family=binomial(link=logit)))
+
+# Calculate AICC, BIC.
+  p = 7
+  n = 44
+AICC = -2*logLik(fitted.model)+2*p*n/(n-p-1)
+
+# Sprintf is used to make the output clearer.
+sprintf("The AICC is %s.", AICC)
+
+sprintf("The BIC is %s.", BIC(fitted.model))
+
+# Develop null model.
+null.model = glm(factor(success) ~ 1, 
+                 data=novel.data, 
+                 family=binomial(link=logit))
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,6,lower.tail = FALSE)
+
+sprintf("The deviance test value is %s", deviance)
+sprintf("The deviance test p-value is %s", deviance_pval)
+```
+
+```{r Logistic Prediction}
+# Calculates a predicted value via the fitted model.
+predicted = predict(fitted.model, data.frame(
+  cover.rel="yes",methods.rel="none", novelamount.rel="first", years=0), type="response")
+
+print(predicted)
+```
+
+```{r Probit Model}
+# Summon and relevel data.
+novel.data = read.csv(file="C:/Users/3sekk/Desktop/fall 23 stats/410/Data_for_Exercises/Exercise3.3Data.csv", 
+                          header=TRUE, sep=",")
+  cover.rel = relevel(factor(novel.data$cover), ref="no")
+  methods.rel = relevel(factor(novel.data$methods), ref="none")
+  novelamount.rel = relevel(factor(novel.data$novels), ref="many")
+
+# Develop probit model.
+# Note that R can't use the "success" variables at-base since they're strings.
+# as.factor converts success into 0/1 variables.
+summary(fitted.model<- glm(factor(success) ~ cover.rel + methods.rel + novelamount.rel + years,
+      data=novel.data, family=binomial(link=probit)))
+
+# Calculate AICC, BIC.
+  p = 7
+  n = 44
+AICC = -2*logLik(fitted.model)+2*p*n/(n-p-1)
+
+# Sprintf is used to make the output clearer.
+sprintf("The AICC is %s.", AICC)
+sprintf("The BIC is %s.", BIC(fitted.model))
+
+# Develop null model.
+null.model = glm(factor(success) ~ 1, 
+                 data=novel.data, 
+                 family=binomial(link=probit))
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,6,lower.tail = FALSE)
+
+sprintf("The deviance test value is %s", deviance)
+sprintf("The deviance test p-value is %s", deviance_pval)
+```
+
+```{r Prediction Probit}
+# Calculates a predicted model via the fitted model.
+predicted = predict(fitted.model, data.frame(
+  cover.rel="yes",methods.rel="none", novelamount.rel="first", years=0), type="response")
+
+print(predicted)
+```
+
+```{r Cloglog Model}
+# Summon and relevel data.
+novel.data = read.csv(file="C:/Users/3sekk/Desktop/fall 23 stats/410/Data_for_Exercises/Exercise3.3Data.csv", 
+                          header=TRUE, sep=",")
+  cover.rel = relevel(factor(novel.data$cover), ref="no")
+  methods.rel = relevel(factor(novel.data$methods), ref="none")
+  novelamount.rel = relevel(factor(novel.data$novels), ref="many")
+
+# Develop complementary log-log model.
+# Note that R can't use the "success" variables at-base since they're strings.
+# as.factor converts success into 0/1 variables.
+summary(fitted.model<- glm(factor(success) ~ cover.rel + methods.rel + novelamount.rel + years,
+      data=novel.data, family=binomial(link=cloglog)))
+
+# Calculate AICC, BIC.
+  p = 7
+  n = 44
+AICC = -2*logLik(fitted.model)+2*p*n/(n-p-1)
+
+# Sprintf is used to make the output clearer.
+sprintf("The AICC is %s.", AICC)
+sprintf("The BIC is %s.", BIC(fitted.model))
+
+# Develop null model.
+null.model = glm(factor(success) ~ 1, 
+                 data=novel.data, 
+                 family=binomial(link=cloglog))
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,6,lower.tail = FALSE)
+
+sprintf("The deviance test value is %s", deviance)
+sprintf("The deviance test p-value is %s", deviance_pval)
+```
+
+```{r Cloglog Prediction}
+# Calculates a predicted model via the fitted model.
+predicted = predict(fitted.model, data.frame(
+  cover.rel="yes",methods.rel="none", novelamount.rel="first", years=0), type="response")
+
+print(predicted)
+```
+
+

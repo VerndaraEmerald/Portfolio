@@ -1,0 +1,4 @@
+"0","# Attempt Box-Cox."
+"0","BoxCox.fit = boxcox(claimamount ~ policiesK + yrswithfirm + percopenclaims,"
+"0","                    data = claims.data,"
+"0","                    lambda = seq(-3,3,1/4),interp = FALSE)"

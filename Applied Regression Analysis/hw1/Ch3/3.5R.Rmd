@@ -1,0 +1,136 @@
+---
+title: '3.5'
+output: html_document
+date: "2023-10-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Libraries}
+library(rcompanion)
+```
+
+```{r Logistic Model}
+# Summon and relevel data.
+cardiac.data = read.csv(file="../../data/Exercise3.5Data.csv", 
+                          header=TRUE, sep=",")
+
+# Develop logistic model.
+# Note that R can't use the "cardiac" variables at-base since they're strings.
+# factor(sucess) converts success from string to levels.
+summary(fitted.model<- glm(factor(group) ~ A + W,
+      data=cardiac.data, 
+      family=binomial(link=logit)))
+
+# Calculate AICC, BIC.
+  p = 3
+  n = 48
+AICC = -2*logLik(fitted.model)+2*p*n/(n-p-1)
+
+# Sprintf is used to make the output clearer.
+sprintf("The AICC is %s.", AICC)
+sprintf("The BIC is %s.", BIC(fitted.model))
+
+# Develop null model.
+null.model = glm(factor(group) ~ 1, 
+                 data=cardiac.data, 
+                 family=binomial(link=logit))
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,2,lower.tail = FALSE)
+
+sprintf("The deviance test value is %s", deviance)
+sprintf("The deviance test p-value is %s", deviance_pval)
+```
+
+```{r Logistic Prediction}
+# Calculates a predicted value via the fitted model.
+predicted = predict(fitted.model, data.frame(A=2, W=4), type="response")
+
+print(predicted)
+```
+
+```{r Probit Model}
+# Summon and relevel data.
+cardiac.data = read.csv(file="../../data/Exercise3.5Data.csv", 
+                          header=TRUE, sep=",")
+
+# Develop logistic model.
+# Note that R can't use the "cardiac" variables at-base since they're strings.
+# factor(sucess) converts success from string to levels.
+summary(fitted.model<- glm(factor(group) ~ A + W,
+      data=cardiac.data, 
+      family=binomial(link=probit)))
+
+# Calculate AICC, BIC.
+  p = 3
+  n = 48
+AICC = -2*logLik(fitted.model)+2*p*n/(n-p-1)
+
+# Sprintf is used to make the output clearer.
+sprintf("The AICC is %s.", AICC)
+sprintf("The BIC is %s.", BIC(fitted.model))
+
+# Develop null model.
+null.model = glm(factor(group) ~ 1, 
+                 data=cardiac.data, 
+                 family=binomial(link=probit))
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,2,lower.tail = FALSE)
+
+sprintf("The deviance test value is %s", deviance)
+sprintf("The deviance test p-value is %s", deviance_pval)
+```
+
+```{r Probit Prediction}
+# Calculates a predicted model via the fitted model.
+predicted = predict(fitted.model, data.frame(A=2, W=4), type="response")
+
+print(predicted)
+```
+
+```{r Cloglog Model}
+# Summon and relevel data.
+cardiac.data = read.csv(file="../../data/Exercise3.5Data.csv", 
+                          header=TRUE, sep=",")
+
+# Develop logistic model.
+# Note that R can't use the "cardiac" variables at-base since they're strings.
+# factor(sucess) converts success from string to levels.
+summary(fitted.model<- glm(factor(group) ~ A + W,
+      data=cardiac.data, 
+      family=binomial(link=cloglog)))
+
+# Calculate AICC, BIC.
+  p = 3
+  n = 48
+AICC = -2*logLik(fitted.model)+2*p*n/(n-p-1)
+
+# Sprintf is used to make the output clearer.
+sprintf("The AICC is %s.", AICC)
+sprintf("The BIC is %s.", BIC(fitted.model))
+
+# Develop null model.
+null.model = glm(factor(group) ~ 1, 
+                 data=cardiac.data, 
+                 family=binomial(link=cloglog))
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,2,lower.tail = FALSE)
+
+sprintf("The deviance test value is %s", deviance)
+sprintf("The deviance test p-value is %s", deviance_pval)
+```
+
+```{r Cloglog Prediction}
+# Calculates a predicted model via the fitted model.
+predicted = predict(fitted.model, data.frame(A=2, W=4), type="response")
+
+print(predicted)
+```

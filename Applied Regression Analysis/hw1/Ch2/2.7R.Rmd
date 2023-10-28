@@ -1,0 +1,46 @@
+---
+title: '2.7'
+output: html_document
+date: "2023-10-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Call Data, Relevel}
+# Call data, relevel, and rescale.
+QI.data = read.csv(file = "./data/Exercise2.2Data.csv",header=TRUE,sep=",")
+  desgn.rel = relevel(factor(QI.data$desgn), ref="staff")
+  priorQI.rel = relevel(factor(QI.data$priorQI), ref="no")
+  score = QI.data$score / 100
+```
+
+```{r Fitted model}
+# Develop fitted model.
+summary(fitted.model<- glm(score ~ desgn.rel + wrkyrs + priorQI.rel,
+                           data = QI.data,
+                           family = Gamma(link = log)))
+```
+
+```{r Deviance}
+# Develop null model.
+null.model<- glm(score ~ 1, 
+                 data=QI.data,
+                 family=Gamma(link=log))
+
+# Produce deviance test and results.
+deviance<- -2*(logLik(null.model)-logLik(fitted.model))
+sprintf("Deviance is %s",deviance)
+p.value<- pchisq(deviance, df=4, lower.tail=FALSE)
+sprintf("p.value is %s",p.value)
+```
+
+```{r Prediction}
+# Calculate and print out prediction.
+print(predict(fitted.model, data.frame
+              (desgn.rel="nurse", wrkyrs=7,priorQI.rel="yes"), type="response"))
+```
+
+
+

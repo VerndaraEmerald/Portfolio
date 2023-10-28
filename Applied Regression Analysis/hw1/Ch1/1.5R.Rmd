@@ -1,0 +1,50 @@
+---
+title: '1.5'
+output: html_document
+date: "2023-10-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Libraries}
+library(rcompanion)
+```
+
+```{r Normality and Model}
+# Fetch and combine transition times.
+triath.data = read.csv(file = "../../data/Exercise1.5Data.csv",header=TRUE,sep=",")
+combined = triath.data$t1 + triath.data$t2
+
+# Fetch normality and perform Shapiro-Wilk test.
+plotNormalHistogram(combined)
+shapiro.test(combined)
+
+# Set references.
+gender.rel = relevel(factor(triath.data$gender), ref="M")
+
+# Fit general linear model.
+summary(fitted.model <- glm(combined ~ 
+                age + gender.rel + run + bike + swim, 
+data=triath.data, 
+family=gaussian(link=identity)))
+sigma(fitted.model)
+```
+
+```{r Deviance Test}
+# Develop null model.
+null.model<- glm(combined ~ 1, 
+                 data=triath.data,
+                 family=gaussian(link=identity))
+
+# Produce deviance test and results.
+print(deviance<- -2*(logLik(null.model)-logLik(fitted.model)))
+print(p.value<- pchisq(deviance, df=5, lower.tail=FALSE))
+```
+
+```{r Prediction}
+# Print out the results of the predict function after adding a predictor value.
+print(predict(fitted.model,data.frame(age=25, gender.rel="M", run=27.53,
+bike=56.28, swim=8.77)))
+```
