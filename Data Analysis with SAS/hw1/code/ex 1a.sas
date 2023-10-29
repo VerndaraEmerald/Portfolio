@@ -1,0 +1,23 @@
+data Direct;
+input make$ ncylinders$ horsepower citympg highwaympg price; cards;
+audi five 110 19 25 17710
+audi five 110 19 25 18920
+audi five 140 17 20 23875
+audi five 160 16 22 17859
+bmw four 101 23 29 16430
+bmw six 121 20 25 24565
+bmw six 182 16 22 30760
+bmw six 182 16 22 41315
+bmw six 182 15 20 36880
+honda  four 86 27 33 10295
+honda  four 101 24 28 12945
+honda  four 100 25 31 10345
+mazda two 101 17 23 10945
+mazda four 84 26 32 11245
+mazda four 120 19 27 18280
+run
+;
+
+proc print data=direct;
+run;
+
