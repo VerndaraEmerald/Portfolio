@@ -1,0 +1,465 @@
+---
+title: "HW 1"
+output:
+  word_document: default
+date: "2023-09-17"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Initialization}
+CVD_cleaned = read.csv("./CVD_cleaned.csv",header = T)
+library(magrittr)
+library(tidyverse)
+library(ggcorrplot)
+library(dplyr)
+```
+
+# Below are categoricals.
+
+```{r General Health, Bar Chart}
+cus_order = c("Excellent","Very Good", "Good", "Fair", "Poor")
+
+CVD_cleaned %>% 
+  ggplot(aes(
+    x = factor(General_Health, level = cus_order), 
+    fill = General_Health)
+    ) +
+  geom_bar() +
+  geom_text(
+    stat='count', 
+    aes(label=..count..), 
+    vjust=1.5
+    ) +
+  scale_fill_manual(
+    breaks = cus_order,
+    values = c("Excellent" = "#0bff00", "Very Good" = "#55b100", "Good" = "#859a00", "Fair" = "#d6cb00","Poor" = "#ff0000")
+    ) + 
+  labs(x = "\n", 
+       y = "Count", 
+       fill = "General Health",
+       title = "Respondents per health status")
+```
+
+```{r Exercise, Pie Chart}
+CVD_cleaned %>% count(Exercise) %>% arrange(desc(Exercise)) %>%
+  mutate(
+    prop = round(n/sum(n)*100,1),
+    lab.ypos = cumsum(prop)-.4*prop
+    ) %>%
+  mutate(label = paste0(Exercise,"\n", prop, "%")) %>%
+  ggplot(aes(x="", y=prop, fill=Exercise)) +
+  geom_bar(stat="identity", width=.5) +
+  geom_text(
+    aes(
+      y = lab.ypos, 
+      label=label),
+    size = 5) +
+  coord_polar("y", start=0, direction=-1) +
+  theme_void() +
+  theme(legend.position = "F") +
+  scale_fill_manual(
+    values = c("Yes" = "#55b100", "No" = "#dc1919")
+  ) +
+  labs(title = "Relative frequencies for exercise")
+```
+
+```{r Checkup, Relative Frequency}
+CVD_cleaned_cus = CVD_cleaned %>% mutate(Checkup = recode(
+    Checkup, 
+    "Within the past year" = "Past year", 
+    "Within the past 2 years" = "Past 2 years", 
+    "Within the past 5 years" = "Past 5 years", 
+    "5 or more years ago" = "5 or more years",
+    "Never" = "Never")
+    ) 
+cus_order_checkup = c("Never","5 or more years","Past 5 years", "Past 2 years","Past year") 
+
+CVD_cleaned_cus %>% 
+  ggplot(aes(
+    x = factor(Checkup,levels = cus_order_checkup), 
+    y = after_stat(count/sum(count)),
+    fill = factor(Checkup,levels = cus_order_checkup))
+    ) +
+  geom_bar() +
+  scale_y_continuous(labels=scales::percent,
+                     limits=c(0,1)) +
+  geom_text(
+    stat='count', 
+    aes(label=paste(round(
+      after_stat(count/sum(count)),3)*100,
+      "%")),
+    vjust=-0.5
+    ) + 
+  labs(x = "\n", 
+       y = "Rate", 
+       fill = "Checkup",
+       title = "Respondents per Checkup type") +
+  scale_fill_manual(
+    values = c("Past year" = "#0bff00", "Past 2 years" = "#55b100", "Past 5 years" = "#859a00", "5 or more years" = "#d6cb00","Never" = "#ff0000")) +
+  theme(axis.text.x=element_text(angle=-10))
+
+```
+
+```{r Heart Disease, Table}
+table(CVD_cleaned$Heart_Disease)
+```
+
+```{r Skin Cancer, Bar Chart}
+cus_order_yn = c("Yes","No") 
+# Removes scientific notation.
+options(scipen = 999)
+
+CVD_cleaned %>% 
+  ggplot(aes(
+    x = factor(Skin_Cancer, level = cus_order_yn), 
+    fill = Skin_Cancer)
+    ) +
+  geom_bar() +
+  geom_text(
+    stat='count', 
+    aes(label=..count..), 
+    vjust=-0.25
+    ) +
+  scale_fill_manual(
+    breaks = cus_order_yn,
+    values = c("No" = "#0bff00","Yes" = "#ff0000")
+    ) + 
+  labs(x = "Skin cancer response", 
+       y = "Amount of patients",
+       title = "Skin cancer presence", 
+       fill = "Response") 
+```
+
+```{r Other Cancer, Pie Chart}
+CVD_cleaned %>% count(Other_Cancer) %>% arrange(desc(Other_Cancer)) %>%
+  mutate(
+    prop = round(n/sum(n)*100,1),
+    lab.ypos = cumsum(prop)-0.6*prop
+    ) %>%
+  mutate(label = paste0(Other_Cancer,"\n", prop, "%")) %>%
+  ggplot(aes(x="", y=prop, fill=Other_Cancer)) +
+  geom_bar(stat="identity", width=.5) +
+  geom_text(
+    aes(
+      y = lab.ypos, 
+      label=label),
+    size = 4) +
+  coord_polar("y", start=0, direction=-1) +
+  theme_void() +
+  theme(legend.position = "F") +
+  scale_fill_manual(
+    values = c("No" = "#55b100", "Yes" = "#dc1919")
+  ) +
+  labs(title = "Relative frequencies for other cancers")
+```
+
+```{r Depression, Table}
+table(CVD_cleaned$Depression)
+```
+
+```{r Diabetes, Relative Frequency}
+CVD_cleaned_cus = CVD_cleaned %>% mutate(Diabetes = recode(
+    Diabetes, 
+    "No" = "No", 
+    "Yes" = "Yes", 
+    "No, pre-diabetes or borderline diabetes" = "Pre/border diabetic", 
+    "Yes, but female told only during pregnancy" = "Told yes during pregnancy")
+    )
+
+CVD_cleaned_cus %>% 
+  ggplot(aes(
+    x = Diabetes, 
+    y = after_stat(count/sum(count)),
+    fill = Diabetes)
+    ) +
+  geom_bar() +
+  scale_y_continuous(labels=scales::percent,
+                     limits=c(0,1)) +
+  geom_text(
+    stat='count', 
+    aes(label=paste(round(
+      after_stat(count/sum(count)),3)*100,
+      "%")),
+    vjust=-0.5
+    ) + 
+  labs(x = "\n", 
+       y = "Rate", 
+       fill = "Diabetes",
+       title = "Respondents per diabetes type") +
+  # These colors approximately resemble the grey-blue of the diabetes ribbon.
+  scale_fill_manual(
+    values = c("No" = "#c1c1c1", "Pre/border diabetic" = "#a0bce1", "Told yes during pregnancy" = "#80a8e2", "Yes" = "#518be1")
+  ) +
+  theme(axis.text.x=element_text(angle=-10))
+```
+
+```{r Arthritis, Bar Graph}
+cus_order_yn = c("Yes","No") 
+options(scipen = 999)
+
+CVD_cleaned %>% 
+  ggplot(aes(
+    x = factor(Arthritis, level = cus_order_yn), 
+    fill = Arthritis)
+    ) +
+  geom_bar() +
+  geom_text(
+    stat='count', 
+    aes(label=..count..), 
+    vjust=-0.25
+    ) +
+  scale_fill_manual(
+    breaks = cus_order_yn,
+    values = c("No" = "#0bff00","Yes" = "#ff0000")
+    ) + 
+  labs(x = "Arthritis response", 
+       y = "Amount of patients",
+       title = "Arthritis presence", 
+       fill = "Response") 
+```
+
+```{r Sex, Pie Chart}
+CVD_cleaned %>% count(Sex) %>% arrange(desc(Sex)) %>%
+  mutate(
+    prop = round(n/sum(n)*100,1),
+    lab.ypos = cumsum(prop)-0.6*prop
+    ) %>%
+  mutate(label = paste0(Sex,"\n", prop, "%")) %>%
+  ggplot(aes(x="", y=prop, fill=Sex)) +
+  geom_bar(stat="identity", width=.5) +
+  geom_text(
+    aes(
+      y = lab.ypos, 
+      label=label),
+    size = 4) +
+  coord_polar("y", start=0, direction=-1) +
+  theme_void() +
+  theme(legend.position = "F") +
+  scale_fill_manual(
+    values = c("Male" = "#00A3E7", "Female" = "#FF6A66")
+  ) +
+  labs(title = "Relative frequencies for sex")
+```
+
+```{r Age Category, Bar Graph}
+CVD_cleaned %>% 
+  ggplot(aes(
+    x = Age_Category, 
+    fill = Age_Category)
+    ) +
+  geom_bar() +
+  geom_text(
+    stat='count', 
+    aes(label=..count..), 
+    vjust=-0.5,
+    size = 3
+    ) + 
+  labs(x = "Categories", 
+       y = "Patients per Category", 
+       fill = "Ages",
+       title = "Age categories")
+```
+
+```{r Smoking History, Bar Graph}
+table(CVD_cleaned$Smoking_History)
+```
+
+## Below are quantitative variables.
+
+```{r Correlation matrix of each quantitative}
+matrix = CVD_cleaned %>% select_if(is.numeric) %>%
+  drop_na() %>% round(digits = 2)
+matrix = cor(matrix)
+colnames(matrix) = c("Height","Weight","BMI","Alcohol Cons.","Fruit Cons.","Greens Cons.","Fried Potatoes Cons.")
+rownames(matrix) = c("Height","Weight","BMI","Alcohol Cons.","Fruit Cons.","Greens Cons.","Fried Potatoes Cons.")
+ggcorrplot(matrix, lab=T, lab_size=3,type = "upper")
+```
+
+# Because most of the correlations are weak, only BMI-Weight, Weight-Height, and Greens-Fruits have been charted.
+
+```{r Fruit and Green}
+# Main scatterplot with trend line. This will take a long time to load since there are 308k data points.
+CVD_cleaned %>%
+  ggplot(aes(x = Fruit_Consumption, y = Green_Vegetables_Consumption)) + 
+  geom_point() +
+  geom_smooth(method="lm", se = F) +
+  labs(
+    Title = "Fruit and Vegetable Consumption Scatterplot",
+    x = "Fruit Consumption",
+    y = "Green Vegetables Consumption"
+)
+```
+
+```{r Weight and BMI}
+CVD_cleaned %>%
+  ggplot(aes(x = Weight_.kg., y = BMI)) + 
+  geom_point() +
+  geom_smooth(method="lm", se = F) +
+  labs(
+    Title = "Weight and BMI Scatterplot",
+    x = "Weight",
+    y = "BMI"
+)
+```
+
+
+## Note: everything below this comment are experimental graphs. They were not explicitly requested, and I made them purely out of curiosity with the limits of R-based data visualization. Much of this code was based on a wide selection of online sources.
+
+```{r General Health grouped by BMI, grouped bars}
+# Below code creates a custom order for health, then creates BMI categories that include the lower but exclude the higher, allowing someone with a 24.99999 BMI to be classed into healthy. These are all stored inside of a CVD_cleaned_cus to avoid damaging the original dataframe.
+cus_order_health = c("Excellent","Very Good", "Good", "Fair", "Poor")
+CVD_cleaned_cus = CVD_cleaned %>% 
+  mutate(BMI = cut(
+    BMI, 
+    breaks = c(0,18.5,25,30,35,Inf),
+    include.lowest = TRUE,
+    right = F,
+    labels = c("Underweight", "Healthy", "Overweight", "Obese", "Morbidly Obese"))
+    )
+
+CVD_cleaned_cus %>% group_by(General_Health,BMI) %>%
+  summarise(counts = n(),.groups = "keep"
+    ) %>%
+  ggplot(
+    aes(
+      x = factor(General_Health,level=cus_order_health),
+      y = counts, 
+      fill = BMI)
+    ) +
+  geom_bar(
+    position="dodge", 
+    stat = "identity"
+    ) +
+  geom_text(
+    aes(label=counts),
+    hjust = -0.1,
+    size=2.5,
+    position = position_dodge(0.9)
+    ) +
+  scale_fill_manual(
+    values = c("Underweight" = "#808080", "Healthy" = "#0bff00", "Overweight" = "#859a00", "Obese" = "#d6cb00","Morbidly Obese" = "#ff0000")
+    ) +
+  coord_flip(ylim = c(0, 45000)) + 
+  labs(
+    x = "General Health", 
+    y = "BMI Count per General Health \n",
+    title = "Health, Split by BMI bins", 
+    fill = "BMI Bins")
+```
+
+```{r General Health grouped by BMI, facet wrap view}
+# A past version of this data visualization had a fixed scale for all five BMI classes, but this had issues with gleaning patterns from any given BMI class, which I would assume is more of value in medical sciences.
+CVD_cleaned_cus = CVD_cleaned %>% 
+  mutate(General_Health = recode(
+    General_Health, 
+    "Excellent" = "Exc", 
+    "Very Good" = "V Good", 
+    "Good" = "Good", 
+    "Fair" = "Fair", 
+    "Poor" = "Poor")
+    ) %>%
+    mutate(BMI = cut(
+    BMI, 
+    breaks = c(0,18.5,25,30,35,Inf),
+    include.lowest = TRUE,
+    right = F,
+    labels = c("Underweight", "Healthy", "Overweight", "Obese", "Morbidly Obese"))
+    )
+cus_order_health = c("Exc","V Good", "Good", "Fair", "Poor")
+
+# Begin code.
+CVD_cleaned_cus %>% group_by(General_Health,BMI) %>%
+  summarise(
+    counts = n(), 
+    .groups = "keep"
+    ) %>%
+  ggplot(
+    aes(
+      x = factor(General_Health,level=cus_order_health),
+      y = counts,
+      fill = factor(General_Health, level=cus_order_health)
+      )
+    ) +
+  geom_bar(
+    position="dodge", 
+    stat = "identity"
+    ) +
+  scale_fill_manual(
+    values = c("Exc" = "#0bff00", "V Good" = "#55b100", "Good" = "#859a00", "Fair" = "#d6cb00","Poor" = "#ff0000")
+    ) +
+  geom_text(
+    aes(label = counts),
+    size = 2.4,
+    vjust = 1
+    ) +
+# scale = "free_y" gives each BMI scale its own scale.
+  facet_wrap(~BMI,scale = "free_y") + 
+  labs(x = "BMI Range", 
+       y = "Health Count of BMI \n",
+       title = "BMI, split by Health", 
+       fill = "Health") +
+  theme(axis.text.x = element_text(angle = 30,vjust = 0.5)) 
+```
+
+```{r General Health grouped by BMI, facet wrap view as total relative frequency}
+CVD_cleaned_cus = CVD_cleaned %>% 
+  mutate(General_Health = recode(
+    General_Health, 
+    "Excellent" = "Exc", 
+    "Very Good" = "V Good", 
+    "Good" = "Good", 
+    "Fair" = "Fair", 
+    "Poor" = "Poor")
+    ) %>%
+    mutate(BMI = cut(
+    BMI, 
+    breaks = c(0,18.5,25,30,35,Inf),
+    include.lowest = TRUE,
+    right = F,
+    labels = c("Underweight", "Healthy", "Overweight", "Obese", "Morbidly Obese"))
+    )
+cus_order_health = c("Exc","V Good", "Good", "Fair", "Poor")
+
+# Begin code.
+CVD_cleaned_cus %>% group_by(General_Health,BMI) %>%
+  summarise(
+    counts = n(), 
+    .groups = "keep"
+    ) %>%
+  ggplot(
+    aes(
+      x = factor(General_Health,level=cus_order_health),
+      y = counts/sum(counts), 
+      fill = factor(General_Health, level=cus_order_health)
+      )
+    ) +
+  geom_bar(
+    position="dodge", 
+    stat = "identity"
+    ) +
+  scale_fill_manual(
+    values = c("Exc" = "#0bff00", "V Good" = "#55b100", "Good" = "#859a00", "Fair" = "#d6cb00","Poor" = "#ff0000")
+    ) +
+  geom_text(
+    aes(
+      label=paste0(
+        round(counts/sum(counts)*100,1),"%")
+        ),
+      vjust=-0.25,
+      size=2.5,
+      position = position_dodge2(1)
+    ) +
+  scale_y_continuous(labels=scales::percent,
+                    limits=c(0,0.15)) +
+  labs(x = "BMI Range", 
+       y = "Health Count of BMI \n",
+       title = "BMI, split by Health", 
+       fill = "Health") +
+  facet_wrap(~BMI)
+  theme(axis.text.x = element_text(angle = 30,vjust = 0.5)) 
+  
+# I'm aware this isn't very effective. I did find a conversation online with similar issues and where they tried to have the relative frequencies calculated based on each facet_wrap panel, but it didn't work for me.
+```

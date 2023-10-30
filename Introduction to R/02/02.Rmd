@@ -1,0 +1,227 @@
+---
+title: "HW2"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+```{r packages}
+# Note: This code is written so that you can press run all/knit and everything will immediately print out.
+library(tidyverse)
+library(dplyr)
+library(lubridate)
+library(RColorBrewer)
+library(ggplot2)
+library(ggpubr)
+library(janitor)
+```
+
+
+Step 1: Download Employee Travel Data from:  
+<https://catalog.data.gov/dataset/employee-travel-data-non-local>
+
+Step 2: Import the dataset
+
+```{r Import dataset}
+# Read_csv to import database.
+# Note: read_csv has no issues with dates in my processing. Several others, for some reason, ended up with periods. Not sure why.
+df = read_csv("https://data.montgomerycountymd.gov/api/views/kf2b-wnaq/rows.csv",
+                    na = c("N/A",""))
+
+# This is mainly showing my work to indicate there are five duplicates.
+# get_dupes() does not specify a column. Thus, it will find only perfect matches.
+# There are 3824 observations. The duplicate remover will remove the 5 perfect matches. seen below.
+# I do not specify a column. Thus only, those perfect matches seen in get_dupes() will be removed.
+# This df is used later.
+df %>% get_dupes()
+df1 = df[!duplicated(df),]
+```
+
+
+Q1: Rename variables that consist of multiple words. Fill the space with underscore between spaces (e.g. travel_start_date = `Travel Start Date` etc.).  
+```{r Q1}
+# Important note: to make code shorter at the price of more R memory, all of my code has been written to rely on modifying a dataset in a prior question (e.g. Q2 will use df1, created in Q1 below). Do not run code out of order.
+df1 = df %>% 
+  janitor::clean_names() %>%
+  # Note that this will not harm any other entries. It's just fixing the inconsistent capitalization. I am aware several columns mention SID and ISB designations, whatever they are, that shouldn't be uncapitalized, but as of now I'm not certain how to go about making this conditional.
+  mutate(employee = str_to_title(employee))
+
+# For ease of checking, the below places the requested columns as the first ones.
+checking = df1 %>% relocate(travel_start_date,travel_end_date,purpose_of_travel,actual_total_expenses)
+
+# Prints the above for checking.
+# Immediately deletes it to save memory in R.
+checking
+rm(checking)
+```
+
+Q2: Which departments spend the most for traveling and how much do they spend for traveling?
+Use the Pareto chart to answer the question. Show only the departments that spent more than 100K for traveling in the Pareto chart.  Make the plot meaningful and self-explanatory.
+```{r Q2}
+# Sum by department, then filter to only be those >100k (100000).
+# Notice that this uses df1 from Q1.
+df1 %>% 
+  summarize(
+  departmental_expenses = sum(actual_total_expenses),
+  n=n(),
+  .by = department
+  ) %>%   
+  filter(departmental_expenses > 100000) %>% 
+  mutate(department = recode(department,
+"Fire and Rescue Service" = "Fire and\nRescue\nService",
+"General Services" = "General\nServices",
+"Transportation" = "Transportation",
+"Permitting Services" = "Permitting\nServices",
+"Finance (include Risk Management)" = "Finance",
+"Emergency Management and Homeland Security" = "Emergency\nManagement\nand Homeland\nSecurity",
+"MC Employees Retirement Plans" = "Retirement",
+"Technology and Enterprise Business Solutions" = "Business\nSolutions"
+)) %>%  
+  ggplot(aes(
+    x = reorder(
+      department,-departmental_expenses),
+    y = departmental_expenses,
+    fill = as.factor(departmental_expenses))
+    )+
+  geom_bar(
+    stat = "identity"
+    ) +
+  geom_text(
+    aes(
+      label=paste0("$",prettyNum(departmental_expenses,big.mark=","))),
+      size = 3, 
+      hjust = -0.05) +
+  scale_y_continuous(labels = scales::dollar,
+                     limits = c(0,1800000)) +
+  labs(
+    title = expression(underline("Departments that spent >$100k on travel, lowest to highest")),
+    x = expression(underline("Department name")),
+    y = expression(underline("Spending in Dollars")),
+    caption = "Of the departments, the police department has the highest expenditures."
+  ) +
+  theme(axis.text.x = element_text(size=10),
+        axis.text.y = element_text(size=7),
+        plot.caption = element_text(size = 11, hjust = -0.6)) +
+# Excessively long names, and me not wanting to make a legend, resulted in me instead using coord_flip to make the names readable.
+  coord_flip() +
+  scale_fill_brewer(palette="Greens") +
+  theme(legend.position = "F") 
+# The interpretation has been included as a caption.
+```
+
+Q3: Using `lubridate` package, split `travel_start_date` to three different columns: `start_year`, `start_month` and `start_day`.  Likewise, apply the same rule to `travel_end_date` to separate into three different columns: `end_year`, etc
+```{r Q3}
+df2 = df1 %>%
+  mutate(start_year = lubridate::year(travel_start_date),
+         start_month = lubridate::month(travel_start_date),
+         start_day = lubridate::day(travel_start_date),
+         end_year = lubridate::year(travel_start_date),
+         end_month = lubridate::month(travel_start_date),
+         end_day = lubridate::day(travel_start_date)) %>%
+# Discard the two dates we used.
+  subset(select = -c(travel_start_date,travel_end_date)) %>%
+# Places the requested values at front for ease of checking.
+  relocate(start_year,start_month,start_day,end_year,end_month,end_day)
+
+# Prints out dataset.
+df2
+# No significant conclusion can be achieved here since it's just working the data.
+```
+
+Q4: Now, we want to find the average amount spent yearly.  Which year has spent the most in terms of average amount spent?  Use the pie chart, visualize your results.  Your chart must be self-explanatory.
+```{r Q4}
+# Note: I have elected to arrange this in descending order by average spending.
+# The question asks for the year with the highest average amount spent. Thus, I feel it is more justified to organize by average spending, so anyone can, at-a-glance, find the highest expenditures and begin investigating that specific year, rather than have to look through all 8 years.
+# It's especially difficult to tell which one is the actual highest because the values are ridiculously similar and pie charts aren't great for distinguishing actual differences between values.
+
+df2 %>% group_by(start_year) %>%
+  summarize(
+  average_spending = round(mean(actual_total_expenses, na.rm=T),1)
+  ) %>%
+  arrange(desc(average_spending)) %>%
+  mutate(
+    prop = round(average_spending/sum(average_spending)*100,1),
+    ) %>%
+  mutate(label = paste0(
+    start_year,"\n",
+    "$",average_spending,"\n",
+    prop,"%")) %>%
+  ggplot(aes(
+    x="", 
+    y=prop, 
+    fill=reorder(start_year,average_spending)
+      )
+    ) +
+  geom_bar(stat="identity", width=.5) +
+  geom_text(
+    aes(
+      x = 1.1,
+      label = label,
+      color = c("white","white","black","black","black","black","black","black","black")),
+    size = 3,
+    position = position_stack(vjust = 0.5)
+    ) +
+  theme_void() +
+  coord_polar("y", start=0,direction=-1) +
+  theme(legend.position = "F") +
+  scale_fill_brewer(palette="Greens") +
+  # This behaved bizarrely the moment a third color was introduced. Nonetheless, this works to make the final two pie slices more legible.
+  scale_color_manual(values = c("black","white")) +
+  labs(
+    title = expression(underline("GGPlot: Average expenditures by year, highest to lowest")),
+    caption = "Of the years, 2021 has the highest expenditure."
+  ) +
+  theme(plot.caption = element_text(size = 11, hjust = 0, vjust = 5)) 
+
+df2 %>% group_by(start_year) %>%
+  summarize(
+  average_spending = round(mean(actual_total_expenses, na.rm=T),1)
+  ) %>%
+  mutate(
+    prop = round(average_spending/sum(average_spending)*100,1),
+    ) %>%
+  mutate(label = paste0(
+    start_year,"\n",
+    "$",average_spending,"\n",
+    prop,"%")) %>%
+  ggpie(x = "average_spending", 
+        label = "label", 
+        lab.pos = "out",
+        color = "white",
+        fill = "label",
+        palette = "Greens",
+        lab.font = c(3,"plain","black"),
+        ggtheme = theme_pubr()) +
+  theme(legend.position = "F") +
+  labs(
+    title = expression(underline("GGPie: Average expenditures by year, sorted by year")),
+    caption = "Of the years, 2021 has the highest expenditure."
+  ) +
+  theme(plot.caption = element_text(size = 11, hjust = 0, vjust = 5)) 
+```
+
+Q5: Find money spending by month in travel starting year 2015.  Which month was the worst month in terms of money spending in 2015?
+```{r Q5}
+# Creates a third data frame.
+# Sums actual_total_expenses in each year + month combination.
+# Arranges by year, then month. Note that, for whatever reason, 2015 Jan/Feb don't exist.
+df3 = df2 %>% 
+  summarize(
+  per_month = sum(actual_total_expenses),
+  .by = c(start_year,start_month)
+  ) %>% 
+  mutate(start_month = month.abb[start_month]) %>%
+  arrange(start_year,start_month)
+
+# Prints out df3 to verify.
+df3
+
+# Finds highest (worst) expenditure for 2015.
+df3 %>% 
+  filter(start_year == 2015) %>% 
+  slice_max(per_month)
+
+# I can't make a caption without DisplayR, an unused library as of now. Interpretation is attached below.
+
+# The month with the highest expenditure in 2015 is October.
+```
