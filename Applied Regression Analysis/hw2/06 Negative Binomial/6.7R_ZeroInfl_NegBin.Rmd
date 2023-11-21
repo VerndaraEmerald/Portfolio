@@ -1,0 +1,55 @@
+---
+title: "6.7R"
+output: html_document
+date: "2023-11-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Summon Libraries}
+library(pscl)
+```
+
+```{r Call Data}
+# Summon and relevel data.
+DMFT = read.csv(file = "../../data/Exercise6.7Data.csv",header=TRUE,sep=",")
+  gender.rel = relevel(factor(DMFT$gender), ref="F") 
+  oralhygiene.rel = relevel(factor(DMFT$oralhygiene), ref="med") 
+```
+
+```{r Develop Model}
+summary(fitted.model<- zeroinfl(DMFTindex ~ oralhygiene.rel + gender.rel | age,
+                           data=DMFT, dist="negbin"))
+
+# Acquires degrees of freedom based on beta coefficients in both parts minus 2 (null model intercepts).
+# List format uses $.
+deg_f = as.integer(
+  length(fitted.model$coefficients$count) +
+  length(fitted.model$coefficients$zero)
+  ) - 2
+```
+
+```{r Model Quality}
+# Develop null model.
+null.model = zeroinfl(DMFTindex ~ 1,
+                    data=DMFT, dist="negbin")
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,deg_f,lower.tail = FALSE)
+
+cat(sprintf("\n"))
+cat(sprintf("\\begin{tabular}{ll}
+\\important{deviance} & \\important{pvalue}  \\\\ \n"))
+cat(sprintf("%s & ", round(deviance,10)))
+cat(sprintf("%s \n", round(deviance_pval,10)))
+cat(sprintf("\\end{tabular}"))
+```
+
+```{r Prediction}
+# Calculates a predicted value via the fitted model.
+predict(fitted.model, data.frame
+        (age=28, gender.rel="M",oralhygiene.rel="high"))
+```

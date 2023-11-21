@@ -1,0 +1,54 @@
+---
+title: "4.5R"
+output: html_document
+date: "2023-11-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Libraries}
+library(nnet)
+```
+
+```{r Call Data}
+# Summon and relevel data.
+ankles = read.csv(file = "../../data/Exercise4.5Data.csv",header=TRUE,sep=",")
+  gender.rel = relevel(factor(ankles$gender), ref = "female")
+  condition.rel = relevel(factor(ankles$condition), ref = "sprained")
+```
+
+```{r Develop Model}
+# Develop fitted model.
+summary(fitted.model<- multinom(condition.rel ~ gender.rel + age,
+      data=ankles))
+```
+
+```{r Model Quality}
+# Develop null model.
+null.model = multinom(condition.rel ~ 1,
+                          data=ankles)
+
+# edf is the number of parameters per model.
+deg_f = as.integer(fitted.model$edf - null.model$edf)
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,deg_f,lower.tail = FALSE)
+
+cat(sprintf("\n"))
+cat(sprintf("\\begin{tabular}{ll}
+\\important{deviance} & \\important{pvalue}  \\\\ \n"))
+cat(sprintf("%s & ", round(deviance,10)))
+cat(sprintf("%s \n", round(deviance_pval,10)))
+cat(sprintf("\\end{tabular}"))
+```
+
+```{r Prediction}
+# Calculates a predicted value via the fitted model.
+predicted = predict(fitted.model, data.frame(
+  age=9, gender.rel="female"), type="prob")
+
+print(predicted)
+```

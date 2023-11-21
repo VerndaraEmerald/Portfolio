@@ -1,0 +1,57 @@
+---
+title: "5.13R"
+output: html_document
+date: "2023-11-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Summon Libraries}
+library(pscl)
+```
+
+```{r Call Data}
+# Summon and relevel data.
+medicine = read.csv(file = "../../data/Exercise5.13Data.csv",header=TRUE,sep=",")
+gender.rel = relevel(factor(medicine$gender), ref="M")
+```
+
+```{r Develop Model}
+summary(fitted.model<- hurdle(ndaysnomeds ~ gender.rel + age | nothermeds,
+                           data=medicine, 
+                           dist="poisson", zero.dist="binomial", link="logit"))
+
+# Acquires degrees of freedom based on coefficients minus 2.
+# List format uses $.
+deg_f = as.integer(
+  length(fitted.model$coefficients$count) +
+  length(fitted.model$coefficients$zero)
+  ) - 2
+```
+
+```{r Model Quality}
+# Develop null model.
+null.model = hurdle(ndaysnomeds ~ 1,
+                      data=medicine,dist="poisson", zero.dist="binomial", link="logit")
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,deg_f,lower.tail = FALSE)
+
+cat(sprintf("\n"))
+cat(sprintf("\\begin{tabular}{ll}
+\\important{deviance} & \\important{pvalue}  \\\\ \n"))
+cat(sprintf("%s & ", round(deviance,10)))
+cat(sprintf("%s \n", round(deviance_pval,10)))
+cat(sprintf("\\end{tabular}"))
+```
+
+```{r Prediction}
+# Calculates a predicted value via the fitted model.
+predicted = predict(fitted.model, data.frame(
+  gender.rel="M", age=78, nothermeds=0))
+
+cat(sprintf("Predicted = %s", predicted))
+```

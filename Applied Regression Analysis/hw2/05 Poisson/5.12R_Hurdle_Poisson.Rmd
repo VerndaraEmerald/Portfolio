@@ -1,0 +1,56 @@
+---
+title: "5.12R"
+output: html_document
+date: "2023-11-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Summon Libraries}
+library(pscl)
+```
+
+```{r Call Data}
+# Summon and relevel data.
+comps = read.csv(file = "../../data/Exercise5.12Data.csv",header=TRUE,sep=",")
+```
+
+```{r Develop Model}
+summary(fitted.model<- hurdle(ncomps ~ nbooks + njrnls | budget,
+                           data=comps, 
+                           dist="poisson", zero.dist="binomial", link="logit"))
+
+# Acquires degrees of freedom based on coefficients minus 2.
+# List format uses $.
+deg_f = as.integer(
+  length(fitted.model$coefficients$count) +
+  length(fitted.model$coefficients$zero)
+  ) - 2
+```
+
+```{r Model Quality}
+# Develop null model.
+null.model = hurdle(ncomps ~ 1,
+                      data=comps)
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,deg_f,lower.tail = FALSE)
+
+cat(sprintf("\n"))
+cat(sprintf("\\begin{tabular}{ll}
+\\important{deviance} & \\important{pvalue}  \\\\ \n"))
+cat(sprintf("%s & ", round(deviance,10)))
+cat(sprintf("%s \n", round(deviance_pval,10)))
+cat(sprintf("\\end{tabular}"))
+```
+
+```{r Prediction}
+# Calculates a predicted value via the fitted model.
+predicted = predict(fitted.model, data.frame(
+  nbooks=10, njrnls=25, budget=15))
+
+sprintf("Predicted = %s", predicted)
+```

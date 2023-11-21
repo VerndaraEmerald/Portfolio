@@ -1,0 +1,57 @@
+---
+title: "5.10R"
+output: html_document
+date: "2023-11-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Summon Libraries}
+library(pscl)
+```
+
+```{r Call Data}
+# Summon and relevel data.
+heart = read.csv(file = "../../data/Exercise5.10Data.csv",header=TRUE,sep=",")
+  smoking.rel = relevel(factor(heart$smoking), ref="yes")
+  gender.rel = relevel(factor(heart$gender), ref="F")
+```
+
+```{r Develop Model}
+summary(fitted.model<- zeroinfl(nattacks ~ gender.rel + BMI | smoking.rel + age,
+                           data=heart))
+
+# Acquires degrees of freedom based on beta coefficients in both parts minus 2 (null model intercepts).
+# List format uses $.
+deg_f = as.integer(
+  length(fitted.model$coefficients$count) +
+  length(fitted.model$coefficients$zero)
+  ) - 2
+```
+
+```{r Model Quality}
+# Develop null model.
+null.model = zeroinfl(nattacks ~ 1,
+                      data=heart)
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,deg_f,lower.tail = FALSE)
+
+cat(sprintf("\n"))
+cat(sprintf("\\begin{tabular}{ll}
+\\important{deviance} & \\important{pvalue}  \\\\ \n"))
+cat(sprintf("%s & ", round(deviance,10)))
+cat(sprintf("%s \n", round(deviance_pval,10)))
+cat(sprintf("\\end{tabular}"))
+```
+
+```{r Prediction}
+# Calculates a predicted value via the fitted model.
+predicted = predict(fitted.model, data.frame(
+  BMI=21.2, age=60, gender.rel="M", smoking.rel="yes"))
+
+sprintf("Predicted = %s", predicted)
+```

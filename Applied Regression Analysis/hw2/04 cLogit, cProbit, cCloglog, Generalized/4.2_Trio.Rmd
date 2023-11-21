@@ -1,0 +1,190 @@
+---
+title: "4.2R"
+output: html_document
+date: "2023-11-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Libraries}
+library(ordinal)
+```
+
+## Logit model.
+
+```{r Call Data}
+# Summon and relevel data.
+satisfaction = read.csv(file = "../../data/Exercise4.2Data.csv",header=TRUE,sep=",")
+  magazine.rel = relevel(factor(satisfaction$magazine), ref="yes")
+  resolved.rel = relevel(factor(satisfaction$resolved), ref="yes")
+# Designate categories.
+  satisf.fac = factor(satisfaction$satisf)
+```
+
+```{r Develop Model}
+summary(fitted.model<- clm(satisf.fac ~ subscribed + magazine.rel + resolved.rel,
+      data=satisfaction, link="logit"))
+
+# Acquire degrees of freedom based on length of coefficients.
+# Acquire n based on fitted.model nobs
+# Since the different models don't change these, this needs to only be done once.
+deg_f = as.integer(length(fitted.model$beta)) 
+p = as.integer(length(fitted.model$coefficients))
+n = fitted.model$nobs
+```
+
+```{r Model Quality}
+# Calculate AICC, BIC.
+AICC = -2*logLik(fitted.model)+2*p*n/(n-p-1)
+
+# Sprintf is used to create LaTex-ready table outputs.
+cat(sprintf("\\begin{tabular}{ll}\\\\ \n"))
+cat(sprintf("AIC & %s \\\\ \n", fitted.model$info$AIC))
+cat(sprintf("AICC & %s \\\\ \n", AICC))
+cat(sprintf("BIC & %s \n", BIC(fitted.model)))
+cat(sprintf("\\end{tabular} \n"))
+
+# Develop null model.
+null.model = clm(satisf.fac ~ 1, 
+                 data=satisfaction, 
+                 link="logit")
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,deg_f,lower.tail = FALSE)
+
+cat(sprintf("\n"))
+cat(sprintf("\\begin{tabular}{ll}
+\\important{deviance} & \\important{pvalue}  \\\\ \n"))
+cat(sprintf("%s & ", round(deviance,10)))
+cat(sprintf("%s \n", round(deviance_pval,10)))
+cat(sprintf("\\end{tabular}"))
+```
+
+```{r Logistic Prediction}
+# Calculates a predicted value via the fitted model.
+predicted = predict(fitted.model, data.frame(
+  subscribed=3, magazine.rel = "no", resolved.rel= "yes"), type="prob")
+
+print(predicted)
+```
+
+## Probit model
+
+```{r Call Data}
+# Summon and relevel data.
+satisfaction = read.csv(file = "../../data/Exercise4.2Data.csv",header=TRUE,sep=",")
+  magazine.rel = relevel(factor(satisfaction$magazine), ref="yes")
+  resolved.rel = relevel(factor(satisfaction$resolved), ref="yes")
+# Designate categories.
+  satisf.fac = factor(satisfaction$satisf)
+```
+
+```{r Develop Model}
+summary(fitted.model<- clm(satisf.fac ~ subscribed + magazine.rel + resolved.rel,
+      data=satisfaction, link="probit"))
+
+# Acquire degrees of freedom based on length of coefficients.
+# Acquire n based on fitted.model nobs
+# Since the different models don't change these, this needs to only be done once.
+deg_f = as.integer(length(fitted.model$beta)) 
+p = as.integer(length(fitted.model$coefficients))
+n = fitted.model$nobs
+```
+
+```{r Model Quality}
+# Calculate AICC, BIC.
+AICC = -2*logLik(fitted.model)+2*p*n/(n-p-1)
+
+# Sprintf is used to create LaTex-ready table outputs.
+cat(sprintf("\\begin{tabular}{ll}\\\\ \n"))
+cat(sprintf("AIC & %s \\\\ \n", fitted.model$info$AIC))
+cat(sprintf("AICC & %s \\\\ \n", AICC))
+cat(sprintf("BIC & %s \n", BIC(fitted.model)))
+cat(sprintf("\\end{tabular} \n"))
+
+# Develop null model.
+null.model = clm(satisf.fac ~ 1, 
+                 data=satisfaction, 
+                 link="probit")
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,deg_f,lower.tail = FALSE)
+
+cat(sprintf("\n"))
+cat(sprintf("\\begin{tabular}{ll}
+\\important{deviance} & \\important{pvalue}  \\\\ \n"))
+cat(sprintf("%s & ", round(deviance,10)))
+cat(sprintf("%s \n", round(deviance_pval,10)))
+cat(sprintf("\\end{tabular}"))
+```
+
+```{r Logistic Prediction}
+# Calculates a predicted value via the fitted model.
+predicted = predict(fitted.model, data.frame(
+  subscribed=3, magazine.rel = "no", resolved.rel= "yes"), type="prob")
+
+print(predicted)
+```
+
+## Cloglog model
+
+```{r Call Data}
+# Summon and relevel data.
+satisfaction = read.csv(file = "../../data/Exercise4.2Data.csv",header=TRUE,sep=",")
+  magazine.rel = relevel(factor(satisfaction$magazine), ref="yes")
+  resolved.rel = relevel(factor(satisfaction$resolved), ref="yes")
+# Designate categories.
+  satisf.fac = factor(satisfaction$satisf)
+```
+
+```{r Develop Model}
+summary(fitted.model<- clm(satisf.fac ~ subscribed + magazine.rel + resolved.rel,
+      data=satisfaction, link="cloglog"))
+
+# Acquire degrees of freedom based on length of coefficients.
+# Acquire n based on fitted.model nobs
+# Since the different models don't change these, this needs to only be done once.
+deg_f = as.integer(length(fitted.model$beta)) 
+p = as.integer(length(fitted.model$coefficients))
+n = fitted.model$nobs
+```
+
+```{r Model Quality}
+# Calculate AICC, BIC.
+AICC = -2*logLik(fitted.model)+2*p*n/(n-p-1)
+
+# Sprintf is used to create LaTex-ready table outputs.
+cat(sprintf("\\begin{tabular}{ll}\\\\ \n"))
+cat(sprintf("AIC & %s \\\\ \n", fitted.model$info$AIC))
+cat(sprintf("AICC & %s \\\\ \n", AICC))
+cat(sprintf("BIC & %s \n", BIC(fitted.model)))
+cat(sprintf("\\end{tabular} \n"))
+
+# Develop null model.
+null.model = clm(satisf.fac ~ 1, 
+                 data=satisfaction, 
+                 link="cloglog")
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,deg_f,lower.tail = FALSE)
+
+cat(sprintf("\n"))
+cat(sprintf("\\begin{tabular}{ll}
+\\important{deviance} & \\important{pvalue}  \\\\ \n"))
+cat(sprintf("%s & ", round(deviance,10)))
+cat(sprintf("%s \n", round(deviance_pval,10)))
+cat(sprintf("\\end{tabular}"))
+```
+
+```{r Logistic Prediction}
+# Calculates a predicted value via the fitted model.
+predicted = predict(fitted.model, data.frame(
+  subscribed=3, magazine.rel = "no", resolved.rel= "yes"), type="prob")
+
+print(predicted)
+```

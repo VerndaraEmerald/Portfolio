@@ -1,0 +1,58 @@
+---
+title: "5.5R"
+output: html_document
+date: "2023-11-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Summon Library}
+library(VGAM)
+```
+
+```{r Call Data}
+# Summon data.
+howl = read.csv(file = "../../data/Exercise5.3Data.csv",header=TRUE,sep=",")
+
+# Discard 0s and relevel data.
+howl = subset(howl,
+              ncalls != 0)
+  time.rel = relevel(factor(howl$time), ref="dusk") 
+  water.rel = relevel(factor(howl$water), ref="no") 
+```
+
+```{r Develop Model}
+summary(fitted.model<- vglm(ncalls ~ time.rel + water.rel + windspeed,
+                           data=howl, family=pospoisson()))
+
+# Acquires degrees of freedom based on coefficients minus 1.
+# Formal class uses @.
+deg_f = as.integer(length(fitted.model@coefficients)) - 1
+```
+
+```{r Model Quality}
+# Develop null model.
+null.model = vglm(ncalls ~ 1,
+                           data=howl, family=pospoisson())
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,deg_f,lower.tail = FALSE)
+
+cat(sprintf("\n"))
+cat(sprintf("\\begin{tabular}{ll}
+\\important{deviance} & \\important{pvalue}  \\\\ \n"))
+cat(sprintf("%s & ", round(deviance,10)))
+cat(sprintf("%s \n", round(deviance_pval,10)))
+cat(sprintf("\\end{tabular}"))
+```
+
+```{r Prediction}
+# Calculates a predicted value via the fitted model.
+predicted = predict(fitted.model, data.frame(
+  time.rel="dusk", windspeed=5, water.rel="no"), type="response")
+
+sprintf("Predicted = %s", predicted)
+```

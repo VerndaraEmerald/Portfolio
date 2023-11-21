@@ -1,0 +1,51 @@
+---
+title: "6.2R"
+output: html_document
+date: "2023-11-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Summon Libraries}
+library(MASS)
+```
+
+```{r Call Data}
+# Summon and relevel data.
+mussels = read.csv(file = "../../data/Exercise6.2Data.csv",header=TRUE,sep=",")
+  feed.rel = relevel(factor(mussels$feeding.level), ref="high") 
+```
+
+```{r Develop Model}
+summary(fitted.model<- glm.nb(ndead.mussels ~ feed.rel. + max.temp + min.temp,
+                           data=mussels))
+
+# Acquires degrees of freedom based on coefficients minus 1.
+# List format uses $.
+deg_f = as.integer(length(fitted.model$coefficients)) - 1
+```
+
+```{r Model Quality}
+# Develop null model.
+null.model = glm.nb(ndead.mussels ~ 1,
+                    data=mussels)
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,deg_f,lower.tail = FALSE)
+
+cat(sprintf("\n"))
+cat(sprintf("\\begin{tabular}{ll}
+\\important{deviance} & \\important{pvalue}  \\\\ \n"))
+cat(sprintf("%s & ", round(deviance,10)))
+cat(sprintf("%s \n", round(deviance_pval,10)))
+cat(sprintf("\\end{tabular}"))
+```
+
+```{r Prediction}
+# Calculates a predicted value via the fitted model.
+predict(fitted.model, data.frame(
+  max.temp=75, min.temp=60, feed.rel.="high"), type="response")
+```

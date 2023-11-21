@@ -1,6 +1,6 @@
 # Innovations from assignment
 
-While the regression models are fairly mundane, they do contain a few deviations from my professor's expectations. I will make no claim to being phenomenal, but I will make some claim to wanting to constantly improve the efficiency of my programs and a willingness to learn the steps to do so.
+While the regression models are fairly mundane, they do contain a few deviations from my professor's expectations. I will make no claim to being phenomenal, but I will make some claim to wanting to constantly improve the efficiency of my programs and a willingness to learn the steps to do so. Since SAS notebook files do not work with relative references, and since I wanted this to run out of the box, I have excluded the SAS notebook files (.sasnb) in the 410 section.
 
 * The SAS code uses macros to automatically output several things, including:
     * Model fit is outputted to a csv file in temp outputs that the Reader.ipnyb file uses.

@@ -1,0 +1,52 @@
+---
+title: "4.6R"
+output: html_document
+date: "2023-11-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Libraries}
+library(nnet)
+```
+
+```{r Call Data}
+# Summon and relevel data.
+comms = read.csv(file = "../../data/Exercise4.6Data.csv",header=TRUE,sep=",")
+  status.rel<- relevel(as.factor(comms$status), ref="0")
+```
+
+```{r Develop Model}
+summary(fitted.model<- multinom(status.rel ~ agediff + heightdiff + drinking,
+      data=comms))
+```
+
+```{r Model Quality}
+# Develop null model.
+null.model = multinom(status.rel ~ 1,
+                          data=comms)
+
+# edf is the number of parameters per model.
+deg_f = as.integer(fitted.model$edf - null.model$edf)
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,deg_f,lower.tail = FALSE)
+
+cat(sprintf("\n"))
+cat(sprintf("\\begin{tabular}{ll}
+\\important{deviance} & \\important{pvalue}  \\\\ \n"))
+cat(sprintf("%s & ", round(deviance,10)))
+cat(sprintf("%s \n", round(deviance_pval,10)))
+cat(sprintf("\\end{tabular}"))
+```
+
+```{r Logistic Prediction}
+# Calculates a predicted value via the fitted model.
+predicted = predict(fitted.model, data.frame(
+  agediff=0, heightdiff=0, drinking=1),type="prob")
+
+print(predicted)
+```

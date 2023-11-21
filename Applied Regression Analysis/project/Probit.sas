@@ -1,9 +1,19 @@
-proc import out=admissions
-  datafile='./data/math dept.csv'
-   dbms=csv replace; 
-   guessingrows=50;
+data admissions;
+ infile '.\data\math dept.csv' dlm=',' firstobs = 2;
+ length Major$ 30 HS_GPA 5. Status$ 20 Ethnicity$ 40 Sex$ 10 Local$ 10;
+ input Major$ HS_GPA Status$ Ethnicity$ Sex$ Local$;
+
+/* Remove unknown sex, combine ethnicities. */
+data admissions;
+set admissions;
+if Sex = "Unknown" then delete;
+if Ethnicity = "Two or More Races" 
+	OR Ethnicity = "Unknown" 
+	OR Ethnicity = "Visa Non-U.S." 
+then Ethnicity = "Other";
 run;
 
+/* Establish categories. */
 proc format;
 value $admissions 
 "Applied"="3App" 
@@ -11,14 +21,19 @@ value $admissions
 "Enrolled"="1Enr";
 run;
 
+/* Begin computation. */
+title 'Fitted model';
 ODS output ModelFit=ModelFit;
 ODS output ParameterEstimates=ParameterEstimates;
 proc genmod;
-class Major(ref="Pre-Applied Statistics") Local(ref="Non-Local") Ethnicity(ref="Unknown") Sex;
+class Major(ref="Pre-Applied Statistics") Local(ref="Non-Local") Ethnicity Sex;
 model Status = Major HS_GPA Ethnicity Sex Local/
 dist=multinomial link=cumprobit;
 format Status $admissions.;
+    ODS select ModelFit;
+    ODS select ParameterEstimates;    
 run;
+title;
 
 /* Copy log likelihood from fitted model's ModelFit. */
 data _null_;
@@ -27,13 +42,18 @@ data _null_;
 run;
 %put LogLike = &FittedLogLike;
 
-/* Calculates degrees of freedom for deviance testing. Counts rows from ParameterEstimates with DF = 1 then subtracts 2, with 2 representing the number of parameters of the null model.*/
+/* Calculates degrees of freedom for deviance testing. Counts rows from ParameterEstimates with DF = 1 and where
+the Parameter is not like intercept.*/
 proc sql noprint;
- select (count(DF)-2) into :Rows from ParameterEstimates where DF = 1;
- quit;
+SELECT (count(DF)) into :Rows 
+FROM ParameterEstimates 
+WHERE DF = 1 AND Parameter NOT LIKE 'Intercept_';
+quit;
 run;
 %put Rows = &Rows;
 
+/* Null model. */
+title 'Null model';
 ods output ModelFit=ModelFit;
 proc genmod data = admissions;
 model Status = /
@@ -41,6 +61,7 @@ dist=multinomial link=cumprobit;
  ODS select ModelFit;
  ODS select ParameterEstimates;
 run;
+title;
 
 /* Copy log likelihood from null model's ModelFit. */
 data _null_;
@@ -50,6 +71,7 @@ run;
 %put LogLike = &NullLogLike;
 
 /* Deviance test via macros. */
+title 'Deviance test';
 data deviance_test;
  deviance=-2*(&NullLogLike-(&FittedLogLike));
  pvalue=1-probchi(deviance,&Rows);
@@ -57,7 +79,9 @@ run;
 
 proc print noobs;
 run;
+title;
 
+/* Prediction. */
 data prediction;
 length Major $30 HS_GPA 8 Status $10 Ethnicity $10 Sex $10 Local $10;
 infile datalines dsd DLM='|';
@@ -66,13 +90,11 @@ datalines;
 Pre-Applied Statistics|4.23||Asian|Male|Non-Local
 ;
 
-proc print data = prediction;
-run;
-
 data admissions;
 set admissions prediction;
 run;
 
+ods select none;
 proc genmod;
 class Major Ethnicity Sex Local;
 model Status = Major HS_GPA Ethnicity Sex Local/
@@ -81,13 +103,22 @@ output out=outdata p=pred_prob;
 format Status $admissions.;
 run;
 
-/* Acquire the final row. */
-proc sql noprint;
-select (count(*)) - 1 into :Rows from outdata;
-quit;
+/* Prediction with all values.*/
+ods select all;
+title 'Final probabilities';
+data final_probabilities;
+    set outdata end=eof;
+    if missing(Status);
+        between_prob = pred_prob - lag1(pred_prob);
+    output;
+    if eof=1 then do;
+        _LEVEL_ = "3App";
+        pred_prob = 1 - pred_prob;
+        between_prob = .;
+        output;
+        end;
+    keep _LEVEL_ pred_prob between_prob;
 run;
-%put Rows = &Rows;
 
-/* Output prediction. */
-proc print data=outdata (firstobs=&Rows) noobs;
-run; 
+proc print data=final_probabilities;
+run;

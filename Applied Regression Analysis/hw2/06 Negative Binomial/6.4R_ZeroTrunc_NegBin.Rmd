@@ -1,0 +1,51 @@
+---
+title: "6.4R"
+output: html_document
+date: "2023-11-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Summon Libraries}
+library(VGAM)
+```
+
+```{r Call Data}
+# Summon and relevel data.
+kayak = read.csv(file = "../../data/Exercise6.4Data.csv",header=TRUE,sep=",")
+camped.rel = relevel(factor(kayak$camped), ref="yes") 
+```
+
+```{r Develop Model}
+summary(fitted.model<- vglm(nkayaks ~ partysize + routelength + camped.rel,
+                           data=kayak,family=posnegbinomial()))
+
+# Acquires degrees of freedom based on coefficients minus 2 (null model's two intercepts).
+# Formal class uses @.
+deg_f = as.integer(length(fitted.model@coefficients)) - 2
+```
+
+```{r Model Quality}
+# Develop null model.
+null.model = vglm(nkayaks ~ 1,
+                           data=kayak,family=posnegbinomial())
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,deg_f,lower.tail = FALSE)
+
+cat(sprintf("\n"))
+cat(sprintf("\\begin{tabular}{ll}
+\\important{deviance} & \\important{pvalue}  \\\\ \n"))
+cat(sprintf("%s & ", round(deviance,10)))
+cat(sprintf("%s \n", round(deviance_pval,10)))
+cat(sprintf("\\end{tabular}"))
+```
+
+```{r Prediction}
+# Calculates a predicted value via the fitted model.
+predict(fitted.model, data.frame
+        (partysize=5,routelength=6,camped.rel="yes"),type="response")
+```
