@@ -15,11 +15,11 @@ library(magrittr)
 library(tidyverse)
 ```
 
-## Logit model.
+## Initialization.
 
 ```{r Call Data}
 # Summon and relevel data.
-math_dept = read.csv(file = "../data/math dept.csv",header=TRUE,sep=",") %>% filter(Sex != "Unknown")
+math_dept = read_csv(file = "./data/math dept.csv") %>% filter(Sex != "Unknown")
 # Convert all character columns into factors.
   math_dept = math_dept %>% mutate_if(is.character, as.factor)
 # Designate references.
@@ -28,10 +28,14 @@ math_dept = read.csv(file = "../data/math dept.csv",header=TRUE,sep=",") %>% fil
   math_dept$Ethnicity.ref = relevel(fct_collapse(math_dept$Ethnicity, Other = c("Unknown","Two or More Races","Visa Non-U.S.")), ref = "White")
   math_dept$Sex.ref = relevel(math_dept$Sex,ref = "Male")
   math_dept$Local.ref = relevel(math_dept$Local, ref = "Non-Local")
- # math_dept$Sex 
+
+# Discard originals.
+math_dept = math_dept %>% select(-Major, -Status, -Ethnicity, -Sex, -Local)
 ```
 
-```{r Develop Model}
+## Logit model.
+
+```{r Logistic Model}
 summary(fitted.model<- clm(Status.ref ~ Major.ref + HS_GPA + Ethnicity.ref + Sex.ref + Local.ref,
       data=math_dept, link="logit"))
 
@@ -43,14 +47,23 @@ p = as.integer(length(fitted.model$coefficients))
 n = fitted.model$nobs
 ```
 
-```{r Model Quality}
+```{r Comparison DataFrame}
+# Create empty data frame and set column and row names.
+comparison = data.frame(matrix(ncol = 3, nrow = 3))
+models = c("cLogit", "cProbit", "cCloglog")
+stats = c("AIC","AICC","BIC")
+names(comparison) = models
+row.names(comparison) = stats
+# Discard.
+rm(stats, models)
+```
+
+```{r Logistic Model Quality}
 # Calculate AICC, BIC.
 AICC = -2*logLik(fitted.model)+2*p*n/(n-p-1)
 
-# Sprintf is used to create LaTex-ready table outputs.
-cat(sprintf("AIC is %s.\n", fitted.model$info$AIC))
-cat(sprintf("AICC is %s.\n", AICC))
-cat(sprintf("BIC is %s.\n", BIC(fitted.model)))
+# Input into comparison DataFrame.
+comparison['cLogit'] = as.numeric(c(fitted.model$info$AIC,AICC,BIC(fitted.model)))
 
 # Develop null model.
 null.model = clm(Status.ref ~ 1, 
@@ -67,8 +80,101 @@ cat(sprintf("Deviance p-value is %s.", round(deviance_pval,70)))
 
 ```{r Logistic Prediction}
 # Calculates a predicted value via the fitted model.
-predicted = predict(fitted.model, data.frame(
-  subscribed=3, magazine.rel = "no", resolved.rel= "yes"), type="prob")
+ predicted = predict(fitted.model, data.frame(
+   HS_GPA = 3.23, Major.ref = "Pre-Math Applied", Ethnicity.ref = "Black or African American", Sex.ref = "Female", Local.ref = "Local"), type="prob")
 
-print(predicted)
+ print(predicted)
 ```
+
+## Probit model.
+
+```{r Probit Model}
+summary(fitted.model<- clm(Status.ref ~ Major.ref + HS_GPA + Ethnicity.ref + Sex.ref + Local.ref,
+      data=math_dept, link="probit"))
+
+# Acquire degrees of freedom based on length of coefficients.
+# Acquire n based on fitted.model nobs
+# Since the different models don't change these, this needs to only be done once.
+deg_f = as.integer(length(fitted.model$beta)) 
+p = as.integer(length(fitted.model$coefficients))
+n = fitted.model$nobs
+```
+
+```{r Probit Model Quality}
+# Calculate AICC, BIC.
+AICC = -2*logLik(fitted.model)+2*p*n/(n-p-1)
+
+# Input into comparison DataFrame.
+comparison['cProbit'] = as.numeric(c(fitted.model$info$AIC,AICC,BIC(fitted.model)))
+
+# Develop null model.
+null.model = clm(Status.ref ~ 1, 
+                 data=math_dept, 
+                 link="probit")
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,deg_f,lower.tail = FALSE)
+
+cat(sprintf("Deviance test statistic is %s.\n", round(deviance,10)))
+cat(sprintf("Deviance p-value is %s.", round(deviance_pval,70)))
+```
+
+```{r Probit Prediction}
+# Calculates a predicted value via the fitted model.
+ predicted = predict(fitted.model, data.frame(
+   HS_GPA = 3.23, Major.ref = "Pre-Math Applied", Ethnicity.ref = "Black or African American", Sex.ref = "Female", Local.ref = "Local"), type="prob")
+
+ print(predicted)
+```
+
+## Cloglog model.
+
+```{r Cloglog Model}
+summary(fitted.model<- clm(Status.ref ~ Major.ref + HS_GPA + Ethnicity.ref + Sex.ref + Local.ref,
+      data=math_dept, link="cloglog"))
+
+# Acquire degrees of freedom based on length of coefficients.
+# Acquire n based on fitted.model nobs
+# Since the different models don't change these, this needs to only be done once.
+deg_f = as.integer(length(fitted.model$beta)) 
+p = as.integer(length(fitted.model$coefficients))
+n = fitted.model$nobs
+```
+
+```{r Cloglog Model Quality}
+# Calculate AICC, BIC.
+AICC = -2*logLik(fitted.model)+2*p*n/(n-p-1)
+
+# Input into comparison DataFrame.
+comparison['cCloglog'] = as.numeric(c(fitted.model$info$AIC,AICC,BIC(fitted.model)))
+
+# Develop null model.
+null.model = clm(Status.ref ~ 1, 
+                 data=math_dept, 
+                 link="cloglog")
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,deg_f,lower.tail = FALSE)
+
+cat(sprintf("Deviance test statistic is %s.\n", round(deviance,10)))
+cat(sprintf("Deviance p-value is %s.", round(deviance_pval,70)))
+```
+
+```{r Cloglog Prediction}
+# Calculates a predicted value via the fitted model.
+ predicted = predict(fitted.model, data.frame(
+   HS_GPA = 3.23, Major.ref = "Pre-Math Applied", Ethnicity.ref = "Black or African American", Sex.ref = "Female", Local.ref = "Local"), type="prob")
+
+ print(predicted)
+```
+
+## Comparison
+
+```{r Comparison}
+comparison
+
+names(comparison)[apply(comparison, 1, which.min)]
+```
+

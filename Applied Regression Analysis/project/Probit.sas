@@ -83,11 +83,11 @@ title;
 
 /* Prediction. */
 data prediction;
-length Major $30 HS_GPA 8 Status $10 Ethnicity $10 Sex $10 Local $10;
+length Major $30 HS_GPA 8 Status $10 Ethnicity $30 Sex $10 Local $10;
 infile datalines dsd DLM='|';
 input Major$ HS_GPA Status$ Ethnicity$ Sex$ Local$;
 datalines; 
-Pre-Applied Statistics|4.23||Asian|Male|Non-Local
+Pre-Math Applied|3.23||Black or African American|Female|Local
 ;
 
 data admissions;
