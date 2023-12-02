@@ -33,6 +33,17 @@ math_dept = read_csv(file = "./data/math dept.csv") %>% filter(Sex != "Unknown")
 math_dept = math_dept %>% select(-Major, -Status, -Ethnicity, -Sex, -Local)
 ```
 
+```{r Comparison DataFrame}
+# Create empty data frame and set column and row names.
+comparison = data.frame(matrix(ncol = 3, nrow = 3))
+models = c("cLogit", "cProbit", "cCloglog")
+stats = c("AIC","AICC","BIC")
+names(comparison) = models
+row.names(comparison) = stats
+# Discard.
+rm(stats, models)
+```
+
 ## Logit model.
 
 ```{r Logistic Model}
@@ -47,19 +58,8 @@ p = as.integer(length(fitted.model$coefficients))
 n = fitted.model$nobs
 ```
 
-```{r Comparison DataFrame}
-# Create empty data frame and set column and row names.
-comparison = data.frame(matrix(ncol = 3, nrow = 3))
-models = c("cLogit", "cProbit", "cCloglog")
-stats = c("AIC","AICC","BIC")
-names(comparison) = models
-row.names(comparison) = stats
-# Discard.
-rm(stats, models)
-```
-
 ```{r Logistic Model Quality}
-# Calculate AICC, BIC.
+# Calculate AICC.
 AICC = -2*logLik(fitted.model)+2*p*n/(n-p-1)
 
 # Input into comparison DataFrame.
@@ -81,7 +81,7 @@ cat(sprintf("Deviance p-value is %s.", round(deviance_pval,70)))
 ```{r Logistic Prediction}
 # Calculates a predicted value via the fitted model.
  predicted = predict(fitted.model, data.frame(
-   HS_GPA = 3.23, Major.ref = "Pre-Math Applied", Ethnicity.ref = "Black or African American", Sex.ref = "Female", Local.ref = "Local"), type="prob")
+   HS_GPA = 3.54, Major.ref = "Pre-Math Education", Ethnicity.ref = "White", Sex.ref = "Female", Local.ref = "Non-Local"), type="prob")
 
  print(predicted)
 ```
@@ -101,7 +101,7 @@ n = fitted.model$nobs
 ```
 
 ```{r Probit Model Quality}
-# Calculate AICC, BIC.
+# Calculate AICC.
 AICC = -2*logLik(fitted.model)+2*p*n/(n-p-1)
 
 # Input into comparison DataFrame.
@@ -123,7 +123,7 @@ cat(sprintf("Deviance p-value is %s.", round(deviance_pval,70)))
 ```{r Probit Prediction}
 # Calculates a predicted value via the fitted model.
  predicted = predict(fitted.model, data.frame(
-   HS_GPA = 3.23, Major.ref = "Pre-Math Applied", Ethnicity.ref = "Black or African American", Sex.ref = "Female", Local.ref = "Local"), type="prob")
+   HS_GPA = 3.54, Major.ref = "Pre-Math Education", Ethnicity.ref = "White", Sex.ref = "Female", Local.ref = "Non-Local"), type="prob")
 
  print(predicted)
 ```
@@ -143,17 +143,13 @@ n = fitted.model$nobs
 ```
 
 ```{r Cloglog Model Quality}
-# Calculate AICC, BIC.
+# Calculate AICC.
 AICC = -2*logLik(fitted.model)+2*p*n/(n-p-1)
 
 # Input into comparison DataFrame.
 comparison['cCloglog'] = as.numeric(c(fitted.model$info$AIC,AICC,BIC(fitted.model)))
 
-# Develop null model.
-null.model = clm(Status.ref ~ 1, 
-                 data=math_dept, 
-                 link="cloglog")
-
+c
 # Deviance test.
 deviance = -2*(logLik(null.model)-logLik(fitted.model))
 deviance_pval = pchisq(deviance,deg_f,lower.tail = FALSE)
@@ -165,14 +161,14 @@ cat(sprintf("Deviance p-value is %s.", round(deviance_pval,70)))
 ```{r Cloglog Prediction}
 # Calculates a predicted value via the fitted model.
  predicted = predict(fitted.model, data.frame(
-   HS_GPA = 3.23, Major.ref = "Pre-Math Applied", Ethnicity.ref = "Black or African American", Sex.ref = "Female", Local.ref = "Local"), type="prob")
+   HS_GPA = 3.54, Major.ref = "Pre-Math Education", Ethnicity.ref = "White", Sex.ref = "Female", Local.ref = "Non-Local"), type="prob")
 
  print(predicted)
 ```
 
 ## Comparison
 
-```{r Comparison}
+```{r}
 comparison
 
 names(comparison)[apply(comparison, 1, which.min)]
