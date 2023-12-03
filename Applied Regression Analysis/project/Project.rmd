@@ -26,7 +26,7 @@ math_dept = read_csv(file = "./data/math dept.csv") %>% filter(Sex != "Unknown")
   math_dept$Major.ref = relevel(math_dept$Major, ref = "Pre-Applied Statistics")
   math_dept$Status.ref = relevel(math_dept$Status, ref = "Enrolled")
   math_dept$Ethnicity.ref = relevel(fct_collapse(math_dept$Ethnicity, Other = c("Unknown","Two or More Races","Visa Non-U.S.")), ref = "White")
-  math_dept$Sex.ref = relevel(math_dept$Sex,ref = "Male")
+  math_dept$Sex.ref = relevel(math_dept$Sex,ref = "Female")
   math_dept$Local.ref = relevel(math_dept$Local, ref = "Non-Local")
 
 # Discard originals.
@@ -149,13 +149,12 @@ AICC = -2*logLik(fitted.model)+2*p*n/(n-p-1)
 # Input into comparison DataFrame.
 comparison['cCloglog'] = as.numeric(c(fitted.model$info$AIC,AICC,BIC(fitted.model)))
 
-c
 # Deviance test.
 deviance = -2*(logLik(null.model)-logLik(fitted.model))
 deviance_pval = pchisq(deviance,deg_f,lower.tail = FALSE)
 
 cat(sprintf("Deviance test statistic is %s.\n", round(deviance,10)))
-cat(sprintf("Deviance p-value is %s.", round(deviance_pval,70)))
+cat(sprintf("Deviance p-value is %s.", round(deviance_pval,100)))
 ```
 
 ```{r Cloglog Prediction}

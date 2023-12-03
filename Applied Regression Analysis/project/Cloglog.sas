@@ -42,6 +42,13 @@ data _null_;
 run;
 %put LogLike = &FittedLogLike;
 
+/* Outputs ParameterEstimates to a file for Python to write out a regression analysis. */
+proc export data=ParameterEstimates
+outfile = "../temp_outputs/text.csv"
+dbms = csv replace;
+delimeter = ',';
+run;
+
 /* Calculates degrees of freedom for deviance testing. Counts rows from ParameterEstimates with DF = 1 and where
 the Parameter is not like intercept.*/
 proc sql noprint;
