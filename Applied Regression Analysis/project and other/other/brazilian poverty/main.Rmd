@@ -1,0 +1,191 @@
+---
+title: "main"
+output:
+  word_document: default
+  html_document: default
+date: "2023-12-17"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Libraries}
+library(magrittr)
+library(dplyr)
+library(broom)
+library(effectsize)
+```
+
+```{r Summon and work Data}
+df = readxl::read_xlsx("./poverty_brazil.xlsx")
+
+# Discard singular entries: NA ethnicity and ill-defined work.
+
+df %<>% na.omit() %>% filter(work != 12)
+
+df1 = df %>% mutate(across(-c(2), .fns = factor),
+               gender = factor(ifelse(woman == "0", "F","M")),
+               education = factor(case_when(
+                 education == 1 ~ "1No education",
+                 education == 2 ~ "2Incomplete primary",
+                 education == 3 ~ "3Complete primary",
+                 education == 4 ~ "4Incomplete secondary",
+                 education == 5 ~ "5Complete secondary",
+                 education == 6 ~ "6Incomplete higher",
+                 education == 7 ~ "7Complete higher")
+                 ),
+               work = factor(case_when(
+                 work == 1 ~ "Agriculture/aquaculture",
+                 work == 2 ~ "Industry",
+                 work == 3 ~ "Construction",
+                 work == 4 ~ "Auto repair",
+                 work == 5 ~ "Logistics", 
+                 work == 6 ~ "Hospitality", 
+                 work == 7 ~ "White collar business",
+                 work == 8 ~ "Public administration",
+                 work == 9 ~ "Education, health/social service",
+                 work == 10 ~ "Other",
+                 work == 11 ~ "Home services",
+                 work == 12 ~ "Ill-defined")
+                 ),
+               metropolitan_area = factor(
+                 ifelse(metropolitan_area == 0, "No", "Yes")
+                 ),
+               ethnicity = factor(
+                 ifelse(non_white == 0, "white", "non-white")
+                 ),
+               urban = factor(
+                 ifelse(urban == 0, "No", "Yes")
+                 ),
+               work_permit = factor(case_when(
+                 work_permit == 0 ~ "No permit",
+                 work_permit == 1 ~ "Permit",
+                 work_permit == 2 ~ "Other situation")
+                 ),
+               poverty = factor(
+                 ifelse(poverty == 0, 1, 0))) %>%
+  select(-c(woman, non_white))
+```
+
+```{r Functions and repeating items}
+df1$work %<>% relevel(ref = "Hospitality")
+df1$metropolitan_area %<>% relevel(ref = "Yes")
+df1$gender %<>% relevel(ref = "M")
+
+# Create model function.
+model = function(link_item){
+  glm(poverty ~ age + education + work + metropolitan_area + urban + work_permit + gender + ethnicity,data = df1, family=binomial(link=link_item))
+}
+
+```
+
+```{r Develop Logit}
+logit = model("logit") 
+logit_output = logit %>% tidy %>% select(-c(std.error, statistic))
+
+logit_output
+```
+
+```{r AICC, AIC, BIC, Deviance Test items}
+# Respectively: degrees of freedom is number of coefficients - 1, parameters is number of coefficients - 1, and n is number of rows in the original data - 1.
+# Since the models are identical except for their predictors' values, this need only run once.
+deg_f = as.integer(length(logit$coefficients)) - 1 
+p = as.integer(length(logit$coefficients))
+n = nrow(df) - 1
+
+# The null model has an identical logl-likelihood value regardless of the link function.
+null_loglike = logLik(glm(poverty ~ 1, data=df1, family=binomial(link=logit)))
+
+# Create empty data frame and set column and row names.
+comparison = data.frame(matrix(ncol = 3, nrow = 3))
+models = c("Logit", "Probit", "Cloglog")
+stats = c("AIC","AICC","BIC")
+names(comparison) = models
+row.names(comparison) = stats
+# Discard.
+rm(stats, models)
+```
+
+```{r Logit Fit, Deviance Test}
+# Calculate AICC.
+AICC = -2*logLik(logit)+2*p*n/(n-p-1)
+
+comparison['Logit'] = as.numeric(c(logit$aic,
+                                   AICC,
+                                   BIC(logit)))
+
+# Deviance test and print.
+deviance = -2*(null_loglike-logLik(logit))
+deviance_pval = pchisq(deviance,deg_f,lower.tail = FALSE)
+
+cat(sprintf("The deviance test value is %s. \n", deviance))
+cat(sprintf("The deviance test p-value is %s.", deviance_pval))
+```
+
+```{r Develop Probit}
+probit = model("probit") 
+probit_output = probit %>% tidy %>% select(-c(std.error))
+
+probit_output
+```
+
+```{r Probit Fit, Deviance Test}
+# Calculate AICC.
+AICC = -2*logLik(probit)+2*p*n/(n-p-1)
+
+comparison['Probit'] = as.numeric(c(probit$aic,
+                                   AICC,
+                                   BIC(probit)))
+
+# Deviance test and print.
+deviance = -2*(null_loglike-logLik(probit))
+deviance_pval = pchisq(deviance,deg_f,lower.tail = FALSE)
+
+cat(sprintf("The deviance test value is %s. \n", deviance))
+cat(sprintf("The deviance test p-value is %s.", deviance_pval))
+```
+
+```{r Develop Cloglog}
+df1$work %<>% relevel(ref = "Agriculture/aquaculture")
+
+cloglog = model("cloglog") 
+cloglog_output = cloglog %>% tidy %>% select(-c(std.error))
+
+cloglog_output
+```
+
+```{r Cloglog Fit, Deviance Test}
+# Calculate AICC.
+AICC = -2*logLik(cloglog)+2*p*n/(n-p-1)
+
+comparison['Cloglog'] = as.numeric(c(cloglog$aic,
+                                   AICC,
+                                   BIC(cloglog)))
+
+# Deviance test and print.
+deviance = -2*(null_loglike-logLik(cloglog))
+deviance_pval = pchisq(deviance,deg_f,lower.tail = FALSE)
+
+cat(sprintf("The deviance test value is %s. \n", deviance))
+cat(sprintf("The deviance test p-value is %s.", deviance_pval))
+```
+
+```{r Model Comparison}
+# Summon comparison dataframe.
+comparison
+
+# Call the one that has the lowest AIC, AICc, and BIC.
+names(comparison)[apply(comparison, 1, which.min)]
+```
+
+```{r Post-Processing}
+logit_output %>% arrange(desc(estimate))
+
+temp = glm(poverty ~ age + education + work + metropolitan_area + urban + work_permit + gender + ethnicity,data = df1, family=binomial(link=logit))
+
+effects = effectsize::standardize_parameters(temp, exp = T)
+
+effects %>% arrange(desc(Std_Odds_Ratio))
+```
+
