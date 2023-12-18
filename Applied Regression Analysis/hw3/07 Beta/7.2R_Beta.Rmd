@@ -1,0 +1,69 @@
+---
+title: '7.2'
+output: html_document
+date: "2023-11-29"
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Summon Libraries}
+library(tidyverse)
+library(magrittr)
+library(betareg)
+```
+
+```{r Summon Data}
+# Call data.
+birds = read.csv("../../Data/Exercise7.2Data.csv")
+
+# Rescale data, discard unused.
+birds %<>%
+    mutate(
+    mass = mass/1000,
+    wingspan = wingspan/100,
+    distance = distance/1000,
+    success = nmigrated/nringed
+  ) %>%
+  select(-c(nringed,nmigrated))
+```
+
+```{r Summon Model}
+# Summon model.
+fitted.model = betareg(success ~ mass + wingspan + distance, 
+                       data = birds, 
+                       link = "logit")
+summary(fitted.model)
+
+# Length of coefficient's means, minus intercept.
+deg_f = as.integer(length(fitted.model$coefficients$mean)) - 1
+```
+
+```{r Deviance Test}
+# Null model.
+null.model = betareg(success ~ 1, data = birds, link = "logit")
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,deg_f,lower.tail = FALSE)
+
+cat(sprintf("\n"))
+cat(sprintf("\\begin{tabular}{ll}
+\\important{deviance} & \\important{pvalue}  \\\\ \n"))
+cat(sprintf("%s & ", round(deviance,10)))
+cat(sprintf("%s \n", round(deviance_pval,10)))
+cat(sprintf("\\end{tabular}"))
+```
+
+```{r Prediction}
+# Calculates a predicted value via the fitted model.
+predict = predict(fitted.model, data.frame(
+  mass = 0.6, wingspan = 0.65, distance = 1.65), type="response")
+predict_real = 70 * predict
+  
+cat(sprintf("successful birds rate = %s \\\\",predict))
+cat(sprintf("\n"))
+cat(sprintf("\\important{successful birds amount} = %s",predict_real))
+```

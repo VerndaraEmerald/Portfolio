@@ -1,0 +1,90 @@
+---
+title: '8.3'
+output: html_document
+date: "2023-11-29"
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Summon Libraries}
+library(tidyverse)
+library(magrittr)
+library(rcompanion)
+library(nlme)
+library(dplyr)
+library(xtable)
+```
+
+```{r Summon and Rework Data}
+# Summon data.
+quality = read.csv("../../Data/Exercise8.3Data.csv")
+
+# Work data.
+quality %<>%
+  # Set references and discard originals.
+  mutate(gender.rel = relevel(factor(.$gender), ref = "M"),
+         doctor.rel = relevel(factor(.$doctor), ref = "B")) %>%
+  select(-c(gender,doctor)) %>%
+  # Lengthen data.
+  pivot_longer(
+    cols = starts_with(c("length","score")),
+    # Regexes for a long first group, then a single-digit second group.
+    names_pattern = "(.*)([0-9])$",
+    # Places the long first group into columns that use their names. The single-digit second group is then placed into a "visit" column.
+    names_to = c(".value","visit"),
+    # Set visit to be an integer.
+    names_transform = list(visit = as.integer))
+```
+
+```{r Test Normality}
+plotNormalHistogram(quality$score)
+shapiro.test(quality$score)
+```
+
+```{r Summon model}
+# Summon model.
+fitted.model = lme(score ~ gender.rel + age + doctor.rel + length + visit,
+                   random = ~ 1 + visit | id,
+                   data = quality)
+summary(fitted.model)
+
+# Generates only the random effects with standard deviation.
+intervals(fitted.model,
+          which = "var-cov")
+
+# Generates fixed effects table.
+xtable(coef(summary(fitted.model)))
+```
+
+```{r}
+# Null model.
+null.model = glm(score ~ gender.rel + age + doctor.rel + length + visit,
+                 data = quality)
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,3,lower.tail = FALSE)
+
+cat(sprintf("\\begin{tabular}{ll}
+\\important{deviance} & \\important{pvalue}  \\\\ \n"))
+cat(sprintf("%s & ", round(deviance,10)))
+cat(sprintf("%s \n", round(deviance_pval,20)))
+cat(sprintf("\\end{tabular}"))
+```
+
+```{r Prediction}
+# Calculates a predicted value via the fitted model.
+predict = predict(fitted.model, 
+                  data.frame(id = 136,
+                             gender.rel = "M",
+                             age = 55,
+                             doctor.rel = "A",
+                             length = 30,
+                             visit = 4), level=0)
+
+# Write prediction.  
+cat(sprintf("\\important{Predicted score} = %s",predict))
+```

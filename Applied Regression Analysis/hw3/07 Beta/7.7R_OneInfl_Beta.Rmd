@@ -1,0 +1,86 @@
+---
+title: '7.7'
+output: html_document
+date: "2023-11-29"
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Summon Libraries}
+library(tidyverse)
+library(magrittr)
+library(gamlss)
+```
+
+```{r Summon Data}
+# Call data.
+saplings = read.csv("../../Data/Exercise7.7Data.csv")
+
+# Rescale data.
+saplings %<>% mutate(
+  survival_rate = nsurvived/nplanted
+) %>% select(-c(nplanted,nsurvived))
+```
+
+```{r Summon Model}
+# Summon model.
+sink("nul")
+fitted.model = gamlss(survival_rate ~ pestcontrol + fertilization,
+                      mu.link = "logit", 
+                      nu.formula = ~ precipitation + windspeed, 
+                      nu.link = "logit",
+                      data = saplings,
+                      family = BEOI)
+sink()
+
+summary(fitted.model)
+
+# Length of coefficient's means, minus intercept.
+deg_f = as.integer(fitted.model$mu.df) + as.integer(fitted.model$nu.df) - 2
+```
+
+```{r Deviance Test}
+# Null model.
+sink("nul")
+null.model = gamlss(survival_rate ~ 1,
+                    mu.link = "logit", 
+                    nu.formula = ~ 1, 
+                    nu.link = "logit",
+                    data = saplings,
+                    family = BEOI)
+sink()
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,deg_f,lower.tail = FALSE)
+
+cat(sprintf("\n"))
+cat(sprintf("\\begin{tabular}{ll}
+\\important{deviance} & \\important{pvalue}  \\\\ \n"))
+cat(sprintf("%s & ", round(deviance,10)))
+cat(sprintf("%s \n", round(deviance_pval,10)))
+cat(sprintf("\\end{tabular}"))
+```
+
+```{r Prediction}
+# Calculates a predicted value via the fitted model.
+predict = predictAll(fitted.model, newdata = data.frame(
+  pestcontrol = 0, fertilization = 0, precipitation = 2, windspeed = 12.5), type="response")
+p_rate = predict$nu + (1-predict$nu)*predict$mu
+
+# Write prediction.  
+cat(sprintf("\\important{Survival rate for first area} = %s \\\\",p_rate))
+
+cat(sprintf("\n"))
+
+# Calculates a predicted value via the fitted model.
+predict = predictAll(fitted.model, newdata = data.frame(
+  pestcontrol = 0, fertilization = 0, precipitation = 25, windspeed = 6), type="response")
+p_rate = predict$nu + (1-predict$nu)*predict$mu
+
+# Write prediction.  
+cat(sprintf("\\important{Survival rate for second area} = %s",p_rate))
+```

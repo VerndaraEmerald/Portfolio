@@ -5,3 +5,9 @@ All categorical variables were summarized with bar charts, relative frequency ch
 
 ## 02
 All objectives are already contained in my professor's comments.
+
+## 04
+GT summary.
+
+## What's missing
+The midterm and final are not included for academic integrity reasons.

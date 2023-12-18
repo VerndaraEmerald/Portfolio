@@ -1,0 +1,64 @@
+---
+title: '7.4'
+output: html_document
+date: "2023-11-29"
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Summon Libraries}
+library(tidyverse)
+library(magrittr)
+library(betareg)
+```
+
+```{r Summon Data}
+# Call data.
+fish = read.csv("../../Data/Exercise7.4Data.csv")
+
+# Rescale data.
+fish %<>% mutate(
+  method.rel = relevel(as.factor(fish$method), ref="trawl"),
+  propcatch = percbycatch/100,
+  depth = depth/1000,
+) %>%
+  select(-c(percbycatch,method))
+```
+
+```{r Summon Model}
+# Summon model.
+fitted.model = betareg(propcatch ~ distance + method.rel + depth, 
+                       data = fish, 
+                       link = "logit")
+summary(fitted.model)
+
+# Length of coefficient's means, minus intercept.
+deg_f = as.integer(length(fitted.model$coefficients$mean)) - 1
+```
+
+```{r Deviance Test}
+# Null model.
+null.model = betareg(propcatch ~ 1, data = fish, link = "logit")
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,deg_f,lower.tail = FALSE)
+
+cat(sprintf("\n"))
+cat(sprintf("\\begin{tabular}{ll}
+\\important{deviance} & \\important{pvalue}  \\\\ \n"))
+cat(sprintf("%s & ", round(deviance,10)))
+cat(sprintf("%s \n", round(deviance_pval,10)))
+cat(sprintf("\\end{tabular}"))
+```
+
+```{r Prediction}
+# Calculates a predicted value via the fitted model.
+predict = (predict(fitted.model, data.frame(
+  distance = 80, depth = 0.25, method.rel = "trawl"), type="response"))
+  
+cat(sprintf("\\important{bycatch rate} = %s",predict))
+```

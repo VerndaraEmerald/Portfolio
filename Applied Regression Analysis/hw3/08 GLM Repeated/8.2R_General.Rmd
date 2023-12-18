@@ -1,0 +1,88 @@
+---
+title: '8.2'
+output: html_document
+date: "2023-11-29"
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Summon Libraries}
+library(tidyverse)
+library(magrittr)
+library(rcompanion)
+library(nlme)
+library(dplyr)
+library(xtable)
+```
+
+```{r Summon and Rework Data}
+# Call data.
+workers = read.csv("../../Data/Exercise8.2Data.csv")
+
+# Work data. Set status reference and discard original.
+workers1 = mutate(workers, 
+                  status.rel = relevel(factor(workers$status), 
+                                       ref = "part")) %>%
+  select(-(status)) %>%
+  # Lengthen data.
+  pivot_longer(
+    cols = starts_with("bonus"),
+    names_to = "year",
+    # Prefix discards the "bonus".
+    names_prefix = "bonus",
+    # Year was character, so its output must be converted to integer.
+    names_transform = list(year = as.integer),
+    values_to = "bonus") %>%
+  # Divide year by 10.
+  mutate(year = year/10)
+```
+
+```{r Test Normality}
+plotNormalHistogram(workers1$bonus)
+shapiro.test(workers1$bonus)
+```
+
+
+```{r Summon Model}
+# Summon model.
+fitted.model = lme(bonus ~ totalyears + status.rel + year,
+                   random = ~ 1 + year| id, 
+                   data = workers1)
+summary(fitted.model)
+
+# Generates only the random effects with standard deviation.
+intervals(fitted.model,
+          which = "var-cov")
+
+# Generates fixed effects table.
+xtable(coef(summary(fitted.model)))
+```
+
+
+```{r Deviance Test}
+# Null model.
+null.model = glm(bonus ~ totalyears + status.rel + year,
+                   data = workers1)
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,3,lower.tail = FALSE)
+
+cat(sprintf("\\begin{tabular}{ll}
+\\important{deviance} & \\important{pvalue}  \\\\ \n"))
+cat(sprintf("%s & ", round(deviance,10)))
+cat(sprintf("%s \n", round(deviance_pval,10)))
+cat(sprintf("\\end{tabular}"))
+```
+
+```{r Prediction}
+# Calculates a predicted value via the fitted model.
+predict = predict(fitted.model, 
+                  data.frame(status.rel = "full", totalyears = 7, year = 2.1), level=0)
+
+# Write prediction.  
+cat(sprintf("\\important{Predicted bonus} = %s",predict))
+```

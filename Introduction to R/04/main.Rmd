@@ -1,0 +1,98 @@
+---
+title: "Main"
+output: html_document
+date: "2023-11-25"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Summon libraries}
+library(magrittr)
+library(gtsummary)
+library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(gt)
+library(readxl)
+library(janitor)
+```
+
+```{r Summon data}
+main = read_xlsx("./LBMC inpatient data for demo.xlsx")
+```
+
+```{r Rework data}
+# Table is different from main in case original data set is needed.
+table = main %>%
+  # Resolve spaces with _ and remove capitalization
+  clean_names() %>%
+  # Standardizes the capitalization.
+  mutate(in_or_out_patient = recode(
+    in_or_out_patient,
+    "in-patient" = "In-patient"
+  )) %>%
+  # Convert all character values to factors.
+  mutate_if(is.character, as.factor) %>%
+  # Convert all shorthanded genders.
+  mutate(gender = fct_na_value_to_level(gender, level = "Missing") %>%
+           fct_recode(
+                             "Male" = "M",
+                             "Female" = "F")
+         ) %>%
+  # Undos abbreviations.
+  mutate(ethnicity =
+    fct_lump_min(
+      fct_recode(ethnicity,
+                 "Caucasian" = "Caucas",
+                 "African-American" = "Af-Am",
+                 "Hispanic" = "Hispan",
+                 "Asian-American" = "As-Am"), 
+      # This lumps Samoan, Pacific Islander, and Other.
+      3)
+    ) %>%
+  # Removes NA entries in Outcome.
+  drop_na(outcome) %>%
+  # Removes out-patients.
+  subset(in_or_out_patient != "Out-patient") %>%
+  # Set outcomes as 1, 0.
+  mutate(outcome = factor(ifelse(outcome >= 1.5, 1, 0)))
+```
+
+```{r Table}
+table %>%
+  select(age, gender, ethnicity, outcome) %>%
+  tbl_summary(by = outcome,
+              statistic = list(
+                all_continuous() ~ "{mean}",
+                all_categorical() ~ "{n} ({p}%)"
+              ),
+              digits = list(
+                age ~ 1
+              ),
+              type = list(
+                age ~ "continuous",
+                gender ~ "categorical",
+                ethnicity ~ "categorical"
+              ),
+              label = c(age ~ "Average Age",
+                        gender ~ "Gender",
+                        ethnicity ~ "Ethnicity")
+  ) %>% 
+  # Improves readability by mutating all 0 (0%) with -.
+  modify_table_body(~.x %>% 
+                      mutate(
+                        across(all_stat_cols(),~gsub("^0.*", "-", .)))) %>%
+  add_overall() %>%
+  add_p(pvalue_fun = ~ style_pvalue(.x, digits = 3)) %>%
+  modify_header(label ~ "**Category**") %>%
+  modify_spanning_header(c("stat_1", "stat_2") ~
+                           "**Demographics by Outcomes, 1 = Good**") %>%
+  modify_caption("N = {N}") %>%
+  as_gt() %>%
+  gtsave(file = "Table.docx")
+```
+
+
+

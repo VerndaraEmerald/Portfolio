@@ -1,0 +1,14 @@
+prodnum prodname manunum prodtype rtlcost
+
+5009    Dream Machine	        500	  Workstation   $3,200 
+4506	Business Machine     	450	  Workstation	$3,345 
+2101	Travel Laptop	        400       Laptop	$2,760 
+2212	Analog Cell Phone	230	  Phone	        $35 
+4509	Digital Cell Phone	245	  Phone	        $175 
+5003	Office Phone	        560	  Phone	        $145 
+1110	Spreadsheet Software	134       Software	$300 
+1200    Database Software	113       Software	$799 
+3409	Statistical Software	243	  Software	$1,899 
+2102	Wordprocessor Software  245       Software	$345 
+2200	Graphics Software	246	  Software	$599 
+;

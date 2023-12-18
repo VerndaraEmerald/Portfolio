@@ -1,0 +1,77 @@
+---
+title: '7.9'
+output: html_document
+date: "2023-11-29"
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Summon Libraries}
+library(tidyverse)
+library(magrittr)
+library(gamlss)
+```
+
+```{r Summon Data}
+# Call data.
+corn = read.csv("../../Data/Exercise7.9Data.csv")
+
+corn %<>% mutate(
+  altitude = altitude/1000
+)
+```
+
+```{r Summon Model}
+# Summon model.
+sink("nul")
+fitted.model = gamlss(germrate ~ altitude,
+                      mu.link = "logit", 
+                      nu.formula = ~ EC, 
+                      nu.link = "log",
+                      tau.formula = ~ soiltemp, 
+                      tau.link = "log",
+                      data = corn,
+                      family = BEINF)
+sink()
+
+summary(fitted.model)
+
+# Length of coefficient's means, minus intercepts.
+deg_f = as.integer(fitted.model$mu.df) + as.integer(fitted.model$nu.df) + as.integer(fitted.model$tau.df) - 3
+```
+
+```{r Deviance Test}
+# Null model.
+sink("nul")
+null.model = gamlss(germrate ~ 1,
+                      mu.link = "logit", 
+                      nu.formula = ~ 1, 
+                      nu.link = "log",
+                      tau.formula = ~ 1, 
+                      tau.link = "log",
+                      data = corn,
+                      family = BEINF)
+sink()
+
+# Deviance test.
+deviance = -2*(logLik(null.model)-logLik(fitted.model))
+deviance_pval = pchisq(deviance,deg_f,lower.tail = FALSE)
+
+cat(sprintf("\\begin{tabular}{ll}
+\\important{deviance} & \\important{pvalue}  \\\\ \n"))
+cat(sprintf("%s & ", round(deviance,10)))
+cat(sprintf("%s \n", round(deviance_pval,10)))
+cat(sprintf("\\end{tabular}"))
+```
+
+```{r Prediction}
+# Calculates a predicted value via the fitted model.
+predict = predictAll(fitted.model, newdata = data.frame(EC = 1.5, soiltemp = 68, altitude = 0.95), type="response")
+p_rate = (predict$tau + predict$mu)/(1 + predict$nu + predict$tau)
+
+# Write prediction.  
+cat(sprintf("\\important{Proportion Germination} = %s",p_rate))
+```

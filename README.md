@@ -8,3 +8,6 @@ Cherissame amis. This portfolio compiles all of my assignments and personal proj
 
 ## Note
 Do not open SAS directly. Click directly on/directly open program files. This ensures that the root directory is set to the program file, not users.
+
+# TO DO
+Rework SASNB files into regular SAS files to allow for relative references.
