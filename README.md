@@ -1,5 +1,5 @@
 # Brief
-Cherissame amis. This portfolio compiles all of my assignments and personal projects demonstrative of my technical skills. For quick checking, I have placed representative files in this front page, described below. For deeper checking, each category contains every assignment/project. Categories include:
+Cherissame amis. This portfolio for Keanu Hua at CSULB compiles all of my assignments and personal projects demonstrative of my technical skills. For quick checking, I have placed representative files in this front page, described below. For deeper checking, each category contains every assignment/project. Categories include:
 
 * Applied Regression Analysis: Fall 2023 with Dr. Olga Korosteleva at CSULB. Uses R, Python, and SAS.
 * Data Analysis with SAS: Fall 2023 with Dr. Olga Korosteleva at CSULB.
