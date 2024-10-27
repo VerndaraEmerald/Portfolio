@@ -1,5 +1,5 @@
 # Brief
-Cherissame amis. This portfolio compiles all of my assignments and personal projects demonstrative of my technical skills. For quick checking, I have placed representative files in this front page, described below. For deeper checking, each category contains every assignment/project. Categories include:
+Cherissame amis. This portfolio for Keanu Hua at CSULB compiles all of my assignments and personal projects demonstrative of my technical skills. For quick checking, I have placed representative files in this front page, described below. For deeper checking, each category contains every assignment/project. Categories include:
 
 * Applied Regression Analysis: Fall 2023 with Dr. Olga Korosteleva at CSULB. Uses R, Python, and SAS.
 * Data Analysis with SAS: Fall 2023 with Dr. Olga Korosteleva at CSULB.
@@ -10,4 +10,5 @@ Do not open SAS directly. Click directly on/directly open program files. This en
 
 # TO DO
 Rework SASNB files into regular SAS files to allow for relative references.
-Improve documentation in Tuberculosis in Vietnam folder.
+Add Spring 2024 files.
+Redesign Github to focus on projects.
