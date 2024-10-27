@@ -12,3 +12,4 @@ Do not open SAS directly. Click directly on/directly open program files. This en
 Rework SASNB files into regular SAS files to allow for relative references.
 Add Spring 2024 files.
 Redesign Github to focus on projects.
+Update GGUSD admissions with 2023 admissions cycle.
