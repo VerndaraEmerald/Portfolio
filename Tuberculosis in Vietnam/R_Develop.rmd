@@ -1,0 +1,114 @@
+---
+title: "Project"
+output: html_document
+date: "2024-04-12"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Libraries}
+library(tidyverse)
+library(readxl)
+library(magrittr)
+library(stringi)
+```
+
+Important note: This is NOT a production model. This is an exploratory rmd file used before I had permission from Choisy to use his data, which does have a cleaner .rda file. Hence, the code herein are my numerous attempts to decipher a very messy .xlsx file.
+
+```{r Summon Data}
+roster = list() 
+# Summons.
+for (i in 1:5){
+tbvn_years = readxl::read_excel("./data/TB data.xlsx",sheet = i) %>%
+  # Remove any NA entries in Quarter, since these are likely extraneous rows.
+  filter(!is.na(Quarter)) %>%
+  mutate(Date = as.numeric(Quarter)) %>%
+  filter(is.na(Date)) %>%
+  mutate(Province = str_remove(Quarter,"[0-9]+") %>%
+           ifelse(. == "", NA,.),
+         across(2:10,~gsub("[^0-9.]", "",.)),
+         across(2:10,~as.numeric(.)),
+         temp = ifelse(grepl("^[0-9]\\.[0-9]*[1-9]",`AFB Positive New`),0,1)) %>%
+  # Fills out the province column with its prior entries, which are VN's provinces.
+  fill(Province) %>%
+  # Discard original Quarter column.
+  select(-c(Quarter)) %>%
+  # Relocate province and date to the start.
+  relocate(c("Province","Date"))
+roster[[i]] = tbvn_years}
+```
+
+```{r Summon Data}
+clean = function(number){readxl::read_excel("./data/TB data.xlsx",sheet = number) %>%
+  # Remove any NA entries in Quarter, since these are likely extraneous rows.
+  filter(!is.na(Quarter)) %>%
+  mutate(Date = as.numeric(Quarter)) %>%
+  filter(is.na(Date)) %>%
+  select(-c(Date)) %>%
+  mutate(across(2:10,~gsub("[^0-9.]", "",.)),
+         across(2:10,~as.numeric(.)),
+         across(2:10,~ifelse(grepl("^[0-9]*\\.[0-9]*[1-9]",.),. * 1000,.))) %>%
+    select(c("Quarter","AFB Positive New"))}
+
+tbvn_years_2010 = clean(1)
+tbvn_years_2011 = clean(2)
+tbvn_years_2012 = clean(3)
+tbvn_years_2013 = clean(4)
+tbvn_years_2014 = clean(5)
+tbvn_years_2015 = clean(6)
+
+final_2010 = tbvn_years_2010 %>%
+  tail(n = 1)
+```
+
+```{r 2010}
+readxl::read_excel("./data/TB data.xlsx",sheet = 1) %>%
+  filter(Quarter != "Total") %>%
+  # Create Province from quarter, discarding all numbers.
+  # This isolates province names and total.
+  # Then, convert into LATIN-ASCII.
+  mutate(Province = str_remove(Quarter,"[0-9]+") %>%
+           ifelse(. == "", NA,.) %>%
+           stri_trans_general(.,"Latin-ASCII"),
+         # Province is empty wherever quarter had a number.
+         # ifelse empties the original province names and quarter.
+         Quarter = as.factor(ifelse(is.na(Province),
+                          Quarter,
+                          NA))) %>%
+  # Replicates province name each time.
+  fill(Province) %>%
+  # Keep if quarter is not empty, or Province is Total.
+  filter(!is.na(Quarter)) %>%
+  mutate(across(2:10,~gsub("[^0-9.]", "",.)),
+         across(2:10,~as.numeric(.)),
+         across(2:10,~ifelse(grepl("^[0-9]*\\.[0-9]*[1-9]",.),. * 1000,.))) %>%
+  relocate(Province) %>%
+  select(c(1:3)) %>%
+  arrange(Province)
+```
+
+```{r Provinces}
+provinces = read_csv("./data/verify_provinces.csv") %>%
+  # Latinize province names, then discard province/city appendage. Trim.
+  # Creates "Verify" column for comparison.
+  mutate(Province = stri_trans_general(`Province/city`,"Latin-ASCII") %>%
+           gsub("province", "", .) %>%
+           gsub("city", "", .) %>%
+           str_trim(),
+         Verify = "Verify") %>%
+  select(c("Province","Verify")) %>%
+  filter(!is.na(Province))
+
+temp %>% 
+  # Title-case province.
+  mutate(Province = str_to_title(Province)) %>%
+  # Merge by shared provinces.
+  merge(.,provinces, by = "Province", all=T) %>%
+  # Quarter and Verify can only be NA if Province fails to match.
+  # This allows validation for provinces that are misspelled 
+  filter(is.na(Quarter) | is.na(Verify))
+```
+
+Ba Ria - Vung Tau, Bac Can, TP Ho Chi Minh, and Thua Thien Hue all exist, but are misspelled. Only TB Hospital seems entirely foreign. Since it can not be tested with a province, this implies that this can be discarded.

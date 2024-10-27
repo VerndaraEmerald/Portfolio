@@ -1,0 +1,294 @@
+---
+title: "Project"
+output: html_document
+date: "2024-04-12"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Libraries, message=FALSE, warning=FALSE}
+# Utility.
+library(tidyverse)
+library(magrittr)
+library(stringi)
+library(scales)
+
+# Modeling.
+library(gam)
+library(broom)
+library(mgcv)
+
+# Plots.
+library(zoo)
+library(ggpubr)
+
+# Maps.
+library(sf)
+library(rnaturalearth)
+library(RColorBrewer)
+```
+
+```{r Summon Data}
+demographic_raw = read_csv("./data/combined.csv") %>%
+  # Create urban-rural ratios.
+  mutate(`2010+urban_rural_ratio` = `2010+urban`/`2010+rural`,
+         `2011+urban_rural_ratio` = `2011+urban`/`2011+rural`,
+         `2012+urban_rural_ratio` = `2012+urban`/`2012+rural`,
+         `2013+urban_rural_ratio` = `2013+urban`/`2013+rural`,
+         `2014+urban_rural_ratio` = `2014+urban`/`2014+rural`,
+         `2015+urban_rural_ratio` = `2015+urban`/`2015+rural`) %>%
+  # Discard urban and rural.
+  select(-c(ends_with("urban"),
+            ends_with("rural"))) %>%
+  # Pivot longer into year, stat, and value columns.
+  pivot_longer(cols = !province,
+              names_to = "year",
+              values_to = "value") %>%
+  # Separates "year" into "year" and "stat."
+  separate_wider_delim(cols = "year",
+                       delim = "+",
+                       names = c("year","stat")) %>%
+  # Pivot wider into stats, with each row being a year.
+  pivot_wider(id_cols = c(province,year),
+              names_from = stat,
+              names_sep = "\\+",
+              values_from = value) %>%
+  # Resolve double-spaced strings.
+  mutate(province = str_squish(province) %>% str_to_lower(),
+         # Population values are stored as 1000s.
+         pop = pop*1000) %>%
+  # Discard 2010.
+  filter(year != 2010)
+
+# Tuberculosis data from Choisy.
+load(file = "./data/tbvn.rda")
+tbvn1 = tbvn %>% 
+  # Lowercase provinces and resolve inconsistent naming schemes.
+  mutate(province = str_to_lower(province),
+         province = ifelse(province == "ho chi minh","ho chi minh city",province),
+         province = ifelse(province == "thua thien hue","thua thien-hue",province)) %>%
+  # Discard TB hospital and Ha Tay province.
+  filter(province != "tb hospital" & province != "ha tay") %>%
+  select(-c(neg_afb,neg_afb_nptb)) %>%
+  mutate(cases = rowSums(.[3:9])) %>%
+  select(c(province,year,quarter,cases)) %>%
+  # Discard 2010.
+  filter(year != 2010)
+
+# Map data.
+vn_map = st_read("./data/vietnam.geojson")
+```
+
+```{r Validations}
+# Validates Choisy's calculation methods.
+tbvn %>%
+  group_by(year) %>%
+  summarize(
+    sum = sum(nptb,neg_afb,neg_afb_nptb,pos_afb_new,pos_afb_relapse,pos_afb_fail,pos_afb_retreatment,pos_afb_other)) %>%
+  xtable::xtable(digits = 0) %>%
+  print(include.rownames = F)
+
+# Validate provinces.
+demographic_raw %>% 
+  # Lower-case province.
+  mutate(province = str_to_lower(province),
+         year = as.character(year)) %>%
+  anti_join(.,demographic_raw)
+
+# This will return an empty data frame if merging is successful.
+``` 
+
+```{r Merging}
+# Merge by shared provinces.
+merged = demographic_raw %>%
+  merge(.,tbvn1,all=T) %>%
+  # Some of the regions do not have provincial-quarterly data.
+  filter(!is.na(quarter)) %>%
+  relocate(quarter, .after = year) %>%
+  # Note: Incidence is in 100k person-quarters.
+  mutate(incidence = 100000 * cases/pop,
+         year = as.numeric(year),
+         quarter = as.factor(quarter),
+         # Create year-quarter variable from combining year adn quarter.
+         year_quarter = paste0(.$year,"-",.$quarter) %>% 
+           as.yearqtr(.),
+         # Set base for province.
+         province = relevel(as.factor(province), ref = "vinh phuc")) %>%
+  # Create grouped difference computations.
+  group_by(province) %>%
+  arrange(province,year_quarter) %>%
+  mutate(diff = (incidence - lag(incidence))/lag(incidence),
+         diff = ifelse(is.na(diff),0,diff))
+```
+
+```{r SAS Production}
+# Summon SAS_VN.
+sas_vn = read_csv('./data/sas_vn.csv') %>%
+  select('IDNAME','ID') %>%
+  # Lowercase names and fix inconsistent names.
+  mutate(province = str_to_lower(IDNAME) %>%
+           ifelse(. == 'thanh pho hai phong', 'hai phong', .) %>%
+           ifelse(. == "thanh pho ho chi minh", "ho chi minh city", .) %>%
+           ifelse(. == "ba ria-vung tau","ba ria - vung tau",.) %>%
+           ifelse(. == "dac lak","dak lak",.) %>%
+           ifelse(. == "thu do ha noi","ha noi",.))
+
+# Combine merged and sas_vn for mapmaking.
+sas_merged = merged %>%
+  merge(sas_vn,.) %>%
+# Discard year_quarter, which SAS doesn't particularly like.
+  select(-c(year_quarter,IDNAME))
+
+# For use with map.
+sas_merged %>%
+  write.csv(file = "./data/sas_map.csv", row.names = F, quote = F)
+
+# For use with model.
+sas_merged %>%
+  select(-c(ID)) %>%
+  write.csv(file = "./data/sas_merged.csv", row.names = F, quote = F)
+
+# Note: SAS does not have Dak Nong, Dien Bien, and Hau Giang.
+anti_join(merged,sas_vn) %>%
+  select(province) %>%
+  unique() %>%
+  xtable::xtable() %>%
+  print(include.rownames = F)
+```
+
+```{r Python Production}
+# Produced for Python's map, which will accept year_quarter.
+merged %>%
+  mutate(year_quarter = as.Date(year_quarter)) %>%
+  as.data.frame() %>%
+  write.csv(file = "./data/merged_yq.csv") 
+```
+
+```{r Map Validation}
+# Validate vn_sf provinces.
+vn_map %>%
+  select(name) %>%
+  mutate(province = str_to_lower(name) %>%
+           stri_trans_general(.,"Latin-ASCII") %>%
+           ifelse(. == "thua thien - hue","thua thien-hue",.) %>%
+           ifelse(. == "tp. ho chi minh","ho chi minh city",.)) %>%
+  select(province) %>%
+  merge(.,merged,all=T) %>%
+  # Checks for NA cases, which imply that no suitable match in the TB cases data was found.
+  filter(is.na(cases)) %>%
+  # Finds the distinct provinces.
+  distinct(province)
+# Thua Thien - Hue has extraneous dashes.
+# TP Ho Chi Minh is Vietnamese shorthand for Ho Chi Minh city.
+```
+
+```{r Map Merging}
+# Fix the map names. Runs once.
+vn_map %<>% 
+  select(name) %>%
+  mutate(province = str_to_lower(name) %>%
+           stri_trans_general(.,"Latin-ASCII") %>%
+           ifelse(. == "thua thien - hue","thua thien-hue",.) %>%
+           ifelse(. == "tp. ho chi minh","ho chi minh city",.)) %>%
+  select(province) %>%
+  merge(.,merged,all=T)
+
+# Solo.
+vn_map %>% 
+  st_write(.,"./data/merged_map_provinces.geojson")
+```
+
+```{r Maps}
+# Get unique years.
+years = unique(merged_map$year) %>%
+  sort() %>%
+  as.vector()
+
+# Function for building the maps based on raw incidence rates.
+raw_map = function(year_entry){
+  merged_map %>%
+  filter(year == year_entry) %>%
+  ggplot() +
+  geom_sf(aes(fill = incidence)) +
+  scale_fill_viridis_c(option = "turbo", limits = c(0,60)) +
+  facet_grid(~year_quarter) +
+  theme(
+    axis.title = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.margin=unit(c(0,0,0,0), "pt"))
+
+  ggsave(filename = paste0("./outputs/r/R_",year_entry,"_raw.svg"),
+         width = 12, height = 6.4)}
+
+lapply(years,raw_map)
+
+# Function for building the maps based on differences.
+diff_map = function(year_entry){
+  merged_map %>%
+  filter(year == year_entry) %>%
+  ggplot() +
+  geom_sf(aes(fill = diff)) +
+  scale_fill_viridis_c(option = "turbo", limits = c(-1,2)) +
+  facet_grid(~year_quarter) +
+  theme(
+    axis.title = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.margin=unit(c(0,0,0,0), "pt"))
+  
+ggsave(filename = paste0("./outputs/r/R_",year_entry,"_diff.svg"),
+       width = 12, height = 6.4)}
+
+lapply(years,diff_map)
+
+# Create time series map.
+merged_map %>%
+  ggplot(aes(x = year_quarter,
+             y = incidence,
+             group = province)) +
+  geom_point() +
+  geom_smooth(aes(group = 1)) +
+  stat_cor(aes(group = 1))
+
+ggsave(filename = "time_series.svg",
+       scale = 2)
+```
+
+```{r Loess}
+options(scipen=20)
+
+# Construct model.
+fitted_model = gam(incidence ~ year + quarter + lo(pop_dens) + lo(literacy) + lo(in_migration) + lo(urban_rural_ratio), 
+                    data = merged)
+
+# Model summary.
+fitted_model %>%
+  tidy(parametric = TRUE) %>%
+  as.data.frame() %>%
+  mutate(p.value = round(p.value,digits = 5),
+         sig = ifelse(p.value < 0.05, "yes", "no")) %>%
+  select(-c(std.error,statistic)) %>%
+  xtable::xtable(digits = 5) %>%
+  print(include.rownames = F)
+
+# Predict everything.
+temp = merged %>% ungroup() %>%
+  mutate(p_incidence = predict(fitted_model,merged)) %>%
+  relocate(c(incidence,p_incidence), .after = province)
+
+# Predict arbitrary value.
+data.frame(year = 2011, quarter = "3", pop_dens = 500, literacy = 90, in_migration = 60.5, urban_rural_ratio = 5) %>%
+  predict(fitted_model,.)
+```
+
