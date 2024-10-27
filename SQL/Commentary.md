@@ -1,6 +1,6 @@
 # Notes
 **This is a very long commentary file.** Each subheader has briefs. This is written so that anyone can get a detailed look at my thought processes without talking directly to me.
-These databases produced in SQLite3. Please be aware that the 500k+ rows of data in the Transfer database is very large, so after decompression, the transfer database will be about half of a GB. **Because of this size, exhibit caution when uncompressing**.
+These databases were produced in SQLite3.
 
 ## GGUSD 
 Brief: I compared schools in my high school's district for their relative efforts and successes in applying/being admitted to UCs.
